@@ -18,3 +18,7 @@ extern void openMainWindow(void);
 
 // panic.cpp
 extern void panic(const WCHAR *msg, ...);
+
+// util.cpp
+extern WCHAR *windowClass(HWND hwnd);
+extern int windowClassOf(HWND hwnd, ...);

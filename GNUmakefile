@@ -6,7 +6,8 @@ CXXFILES = \
 	common.cpp \
 	main.cpp \
 	mainwin.cpp \
-	panic.cpp
+	panic.cpp \
+	util.cpp
 
 HFILES = \
 	barspy.hpp \

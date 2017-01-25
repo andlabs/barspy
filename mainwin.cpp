@@ -5,6 +5,7 @@ HWND mainwin = NULL;
 
 class mainwinClass {
 	HWND hwnd;
+	HWND winlist;
 public:
 	mainwinClass(HWND h)
 	{
@@ -17,7 +18,7 @@ public:
 	}
 
 	LRESULT WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
-	LRESULT windowPosChanged(WPARAM wParam, LPARAM lParam, struct metrics *m);
+	void relayout(void);
 	void getDLUBase(int *dluBaseX, int *dluBaseY);
 };
 
@@ -48,24 +49,54 @@ void mainwinClass::getDLUBase(int *dluBaseX, int *dluBaseY)
 	ReleaseDC(hwnd, dc);
 }
 
-LRESULT mainwinClass::windowPosChanged(WPARAM wParam, LPARAM lParam, struct metrics *m)
+void mainwinClass::relayout(void)
 {
-	WINDOWPOS *wp = (WINDOWPOS *) lParam;
+	RECT client;
+	int dluBaseX, dluBaseY;
+	int marginsX, marginsY, paddingX;
+	LONG tableX;
 
-	if ((wp->flags & SWP_NOSIZE) != 0)
-		return DefWindowProcW(this->hwnd, WM_WINDOWPOSCHANGED, wParam, lParam);
-	// TODO
-	return 0;
+	if (GetClientRect(this->hwnd, &client) == 0)
+		panic(L"error getting window client rect: %I32d", GetLastError());
+
+	this->getDLUBase(&dluBaseX, &dluBaseY);
+	// TODO sort this out
+	marginsX = MulDiv(7, dluBaseX, 4);
+	marginsY = MulDiv(7, dluBaseY, 8);
+	paddingX = MulDiv(4, dluBaseX, 4);
+
+	tableX = (client.right - client.left - 2 * marginsX - paddingX) / 3;
+
+	if (SetWindowPos(this->winlist, NULL,
+		marginsX, marginsY,
+		tableX,
+		(client.bottom - client.top - 2 * marginsY),
+		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER) == 0)
+		panic(L"error positioning window list: %I32d", GetLastError());
 }
 
 LRESULT mainwinClass::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	WINDOWPOS *wp = (WINDOWPOS *) lParam;
 	LRESULT lResult;
-	HRESULT hr;
 
 	switch (uMsg) {
+	case WM_CREATE:
+		this->winlist = CreateWindowExW(WS_EX_CLIENTEDGE,
+			WC_TREEVIEWW, L"",
+			WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL | TVS_DISABLEDRAGDROP | TVS_HASBUTTONS | TVS_NONEVENHEIGHT | TVS_SHOWSELALWAYS,
+			0, 0,
+			200, 200,
+			this->hwnd, (HMENU) 101, hInstance, NULL);
+		if (this->winlist == NULL)
+			panic(L"error creating window list: %I32d", GetLastError());
+		this->relayout();
+		break;
 	case WM_WINDOWPOSCHANGED:
-		return this->windowPosChanged(wParam, lParam, &m);
+		if ((wp->flags & SWP_NOSIZE) != 0)
+			break;
+		this->relayout();
+		return 0;
 	case WM_DESTROY:
 		SetWindowLongPtrW(this->hwnd, GWLP_USERDATA, (LONG_PTR) NULL);
 		// call this now so we can safely delete this afterward
@@ -113,7 +144,7 @@ void openMainWindow(void)
 		L"mainwin", APPTITLE,
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT,
-		400, 400,
+		400, 600,
 		NULL, NULL, hInstance, NULL);
 	if (mainwin == NULL)
 		panic(L"error creating main window: %I32d", GetLastError());
