@@ -20,6 +20,7 @@ public:
 	LRESULT WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void relayout(void);
 	void getDLUBase(int *dluBaseX, int *dluBaseY);
+	BOOL onNotify(NMHDR *hdr, LRESULT *lResult);
 };
 
 void mainwinClass::getDLUBase(int *dluBaseX, int *dluBaseY)
@@ -54,7 +55,7 @@ void mainwinClass::relayout(void)
 	RECT client;
 	int dluBaseX, dluBaseY;
 	int marginsX, marginsY, paddingX;
-	LONG tableX;
+	LONG tableWidth;
 
 	if (GetClientRect(this->hwnd, &client) == 0)
 		panic(L"error getting window client rect: %I32d", GetLastError());
@@ -65,14 +66,73 @@ void mainwinClass::relayout(void)
 	marginsY = MulDiv(7, dluBaseY, 8);
 	paddingX = MulDiv(4, dluBaseX, 4);
 
-	tableX = (client.right - client.left - 2 * marginsX - paddingX) / 3;
+	tableWidth = (client.right - client.left - 2 * marginsX - paddingX) / 3;
 
 	if (SetWindowPos(this->winlist, NULL,
 		marginsX, marginsY,
-		tableX,
+		tableWidth,
 		(client.bottom - client.top - 2 * marginsY),
 		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER) == 0)
 		panic(L"error positioning window list: %I32d", GetLastError());
+}
+
+static HTREEITEM addWindow(HWND treeview, HWND window, HTREEITEM parent)
+{
+	TVINSERTSTRUCTW tis;
+	HTREEITEM item;
+
+	ZeroMemory(&tis, sizeof (TVINSERTSTRUCTW));
+	tis.hParent = parent;
+	tis.hInsertAfter = TVI_LAST;
+	tis.itemex.mask = TVIF_PARAM | TVIF_TEXT;
+	tis.itemex.pszText = LPSTR_TEXTCALLBACK;
+	tis.itemex.lParam = (LPARAM) window;
+	if (windowClassOf(window, DESIREDCLASSES, NULL) != -1) {
+		tis.itemex.mask |= TVIF_STATE;
+		tis.itemex.state = TVIS_BOLD;
+		tis.itemex.stateMask = TVIS_BOLD;
+	}
+	item = (HTREEITEM) SendMessageW(treeview, TVM_INSERTITEMW, 0, (LPARAM) (&tis));
+	if (item == NULL)
+		panic(L"error adding window to window list: %I32d", GetLastError());
+	return item;
+}
+
+static BOOL setWinListLabel(NMTVDISPINFOW *nm, LRESULT *lResult)
+{
+	HWND hwnd;
+	WCHAR *cls;
+	WCHAR text[64];
+
+	if ((nm->item.mask & TVIF_TEXT) == 0)
+		return FALSE;
+
+	hwnd = (HWND) (nm->item.lParam);
+	cls = windowClass(hwnd);
+	// TODO erorr check
+	// TODO dynamically allocate?
+	GetWindowTextW(hwnd, text, 63);
+
+	// TODO error check?
+	// TODO does cchText include the null terminator?
+	StringCchPrintfW(nm->item.pszText, nm->item.cchTextMax,
+		L"%p %s %s",
+		hwnd, cls, text);
+
+	delete[] cls;
+	*lResult = 0;
+	return TRUE;
+}
+
+BOOL mainwinClass::onNotify(NMHDR *hdr, LRESULT *lResult)
+{
+	if (hdr->hwndFrom != this->winlist)
+		return FALSE;
+	switch (hdr->code) {
+	case TVN_GETDISPINFOW:
+		return setWinListLabel((NMTVDISPINFOW *) hdr, lResult);
+	}
+	return FALSE;
 }
 
 LRESULT mainwinClass::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -84,12 +144,13 @@ LRESULT mainwinClass::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_CREATE:
 		this->winlist = CreateWindowExW(WS_EX_CLIENTEDGE,
 			WC_TREEVIEWW, L"",
-			WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL | TVS_DISABLEDRAGDROP | TVS_HASBUTTONS | TVS_NONEVENHEIGHT | TVS_SHOWSELALWAYS,
+			WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL | TVS_DISABLEDRAGDROP | TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_NONEVENHEIGHT | TVS_SHOWSELALWAYS,
 			0, 0,
 			200, 200,
 			this->hwnd, (HMENU) 101, hInstance, NULL);
 		if (this->winlist == NULL)
 			panic(L"error creating window list: %I32d", GetLastError());
+		enumWindowTree(this->winlist, addWindow);
 		this->relayout();
 		break;
 	case WM_WINDOWPOSCHANGED:
@@ -97,6 +158,10 @@ LRESULT mainwinClass::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			break;
 		this->relayout();
 		return 0;
+	case WM_NOTIFY:
+		if (this->onNotify((NMHDR *) lParam, &lResult))
+			return lResult;
+		break;
 	case WM_DESTROY:
 		SetWindowLongPtrW(this->hwnd, GWLP_USERDATA, (LONG_PTR) NULL);
 		// call this now so we can safely delete this afterward
@@ -140,11 +205,12 @@ void openMainWindow(void)
 	if (RegisterClassW(&wc) == 0)
 		panic(L"error registering main window class: %I32d", GetLastError());
 
+	// TODO adjustwindowrect this?
 	mainwin = CreateWindowExW(0,
 		L"mainwin", APPTITLE,
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT, CW_USEDEFAULT,
-		400, 600,
+		800, 450,
 		NULL, NULL, hInstance, NULL);
 	if (mainwin == NULL)
 		panic(L"error creating main window: %I32d", GetLastError());

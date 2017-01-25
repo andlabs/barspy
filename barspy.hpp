@@ -20,5 +20,10 @@ extern void openMainWindow(void);
 extern void panic(const WCHAR *msg, ...);
 
 // util.cpp
+extern int classNameOf(WCHAR *classname, ...);
 extern WCHAR *windowClass(HWND hwnd);
 extern int windowClassOf(HWND hwnd, ...);
+#define DESIREDCLASSES TOOLBARCLASSNAMEW, REBARCLASSNAMEW
+
+// enum.cpp
+extern void enumWindowTree(HWND treeview, HTREEITEM (*f)(HWND treeview, HWND window, HTREEITEM parent));
