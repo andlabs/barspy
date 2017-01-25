@@ -3,6 +3,7 @@
 OUT = barspy.exe
 
 CXXFILES = \
+	common.cpp \
 	main.cpp \
 	mainwin.cpp \
 	panic.cpp
