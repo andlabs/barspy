@@ -6,6 +6,8 @@ HWND mainwin = NULL;
 class mainwinClass {
 	HWND hwnd;
 	HWND winlist;
+	HWND instructions;
+	HWND currentDetails;
 public:
 	mainwinClass(HWND h)
 	{
@@ -74,6 +76,17 @@ void mainwinClass::relayout(void)
 		(client.bottom - client.top - 2 * marginsY),
 		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER) == 0)
 		panic(L"error positioning window list: %I32d", GetLastError());
+
+	if (SetWindowPos(this->currentDetails, NULL,
+		marginsX + tableWidth + paddingX, marginsY,
+		(client.right - client.top - 2 * marginsX - (marginsX + tableWidth + paddingX)),
+		(client.bottom - client.top - 2 * marginsY),
+		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER) == 0)
+		panic(L"error positioning details view: %I32d", GetLastError());
+	// this seems to be necessary to get the control to redraw correctly
+	if (this->currentDetails == this->instructions)
+		if (InvalidateRect(this->instructions, NULL, TRUE) == 0)
+			panic(L"error queueing redraw of instructions label: %I32d", GetLastError());
 }
 
 static HTREEITEM addWindow(HWND treeview, HWND window, HTREEITEM parent)
@@ -145,13 +158,23 @@ LRESULT mainwinClass::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		this->winlist = CreateWindowExW(WS_EX_CLIENTEDGE,
 			WC_TREEVIEWW, L"",
 			WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL | TVS_DISABLEDRAGDROP | TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_NONEVENHEIGHT | TVS_SHOWSELALWAYS,
-			0, 0,
-			200, 200,
+			0, 0, 100, 100,
 			this->hwnd, (HMENU) 101, hInstance, NULL);
 		if (this->winlist == NULL)
 			panic(L"error creating window list: %I32d", GetLastError());
+		this->instructions = CreateWindowExW(0,
+			L"STATIC", L"Click on a boldface item at left to begin.",
+			WS_CHILD | WS_VISIBLE | SS_CENTER | SS_CENTERIMAGE | SS_NOPREFIX,
+			0, 0, 100, 100,
+			this->hwnd, (HMENU) 102, hInstance, NULL);
+		if (this->instructions == NULL)
+			panic(L"error creating instructions label: %I32d", GetLastError());
+		SendMessageW(this->instructions, WM_SETFONT, (WPARAM) hMessageFont, (LPARAM) TRUE);
 		enumWindowTree(this->winlist, addWindow);
+		this->currentDetails = this->instructions;
 		this->relayout();
+		// and start using the scroll wheel properly
+		SetFocus(this->winlist);
 		break;
 	case WM_WINDOWPOSCHANGED:
 		if ((wp->flags & SWP_NOSIZE) != 0)
