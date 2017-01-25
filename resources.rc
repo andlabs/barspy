@@ -1,0 +1,7 @@
+// 30 may 2015
+#include "winapi.hpp"
+
+// this is a UTF-8 file
+#pragma code_page(65001)
+
+CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "barspy.manifest"
