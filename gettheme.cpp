@@ -4,6 +4,8 @@
 // oops, uxtheme.dll stores the strings you pass into SetWindowTheme() (and by extension, the CCM_SETWINDOWTHEME family of messages) in the local atom table
 // there does not seem to be a way to inspect the local atom table of another process by...
 // ...I hoped I would never have a need to do this but oh well
+// oh yeah also UNDOCUMENTED STUFF AHOY
+// the nature of uxtheme's storage of the window theme strings is undocumented, SOOOOO
 
 static const uint8_t call386[] = {
 	0x55, 0x8B, 0xEC, 0x51, 0x8B, 0x45, 0x08, 0x89,
