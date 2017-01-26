@@ -252,6 +252,33 @@ done:
 		panic(L"error closing toolhelp32 info for getting proc addresses in process: %I32d", GetLastError());
 }
 
+static WCHAR *runThread(HANDLE hProc, const struct archInfo *ai, void *pCode, void *pData)
+{
+	HANDLE hThread;
+	WCHAR *out;
+	DWORD ret;
+	DWORD le;
+
+	hThread = CreateRemoteThread(hProc, NULL, 0,
+		(LPTHREAD_START_ROUTINE) pCode, pData, 0, NULL);
+	if (hThread == NULL)
+		panic(L"error creating thread to get string from process: %I32d", GetLastError());
+	// TODO switch to MsgWaitForMultipleObjectsEx()? this code assumes it is atomic with regards to the UI
+	if (WaitForSingleObject(hThread, INFINITE) == WAIT_FAILED)
+		panic(L"error waiting for process string thread to run: %I32d", GetLastError());
+	if (CloseHandle(hThread) == 0)
+		panic(L"error closing thread: %I32d", GetLastError());
+
+	readpm(hProc, pData, ai->offRet, &ret, ai->sizeRet);
+	readpm(hProc, pData, ai->offLastError, &le, ai->sizeLastError);
+	// TODO make sure this logic is right
+	if (ret == 0 && le != ERROR_SUCCESS)
+		return NULL;
+	out = new WCHAR[ret + 1];
+	readpm(hProc, pData, ai->structSize, out, (ret + 1) * sizeof (WCHAR));
+	return out;
+}
+
 void getWindowClass(HWND hwnd, WCHAR **pszSubAppName, WCHAR **pszSubIdList)
 {
 	DWORD pid;
@@ -338,13 +365,13 @@ void getWindowClass(HWND hwnd, WCHAR **pszSubAppName, WCHAR **pszSubIdList)
 	if (hSubAppName != NULL) {
 		atom = (ATOM) hSubAppName;
 		writepm(hProc, pData, ai->offAtom, &atom, ai->sizeAtom);
-		// TODO
+		*pszSubAppName = runThread(hProc, ai, pCode, pData);
 	}
 
 	if (hSubIdList != NULL) {
 		atom = (ATOM) hSubIdList;
 		writepm(hProc, pData, ai->offAtom, &atom, ai->sizeAtom);
-		// TODO
+		*pszSubIdList = runThread(hProc, ai, pCode, pData);
 	}
 
 	if (VirtualFreeEx(hProc, pData, 0, MEM_RELEASE) == 0)
