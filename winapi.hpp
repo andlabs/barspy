@@ -4,6 +4,9 @@
 #define STRICT
 #define STRICT_TYPED_ITEMIDS
 
+// make sure psapi functions use pre-Windows 7 linkage
+#define PSAPI_VERSION 1
+
 // get Windows version right; right now Windows Vista
 // unless otherwise stated, all values from Microsoft's sdkddkver.h
 // TODO is all of this necessary? how is NTDDI_VERSION used?

@@ -28,5 +28,8 @@ extern int windowClassOf(HWND hwnd, ...);
 // enum.cpp
 extern void enumWindowTree(HWND treeview, HTREEITEM (*f)(HWND treeview, HWND window, HTREEITEM parent));
 
+// process.cpp
+extern void initProcess(void);
+
 // gettheme.cpp
 extern void getWindowTheme(HWND hwnd, WCHAR **pszSubAppName, WCHAR **pszSubIdList);

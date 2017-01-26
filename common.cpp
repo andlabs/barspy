@@ -42,4 +42,6 @@ void initCommon(HINSTANCE hInst, int nCS)
 	hMessageFont = CreateFontIndirectW(&(ncm.lfMessageFont));
 	if (hMessageFont == NULL)
 		panic(L"error calling CreateFontIndirectW() to load default messagebox font: %I32d", GetLastError());
+
+	initProcess();
 }
