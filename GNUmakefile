@@ -9,6 +9,7 @@ CXXFILES = \
 	main.cpp \
 	mainwin.cpp \
 	panic.cpp \
+	process.cpp \
 	util.cpp
 
 HFILES = \
@@ -35,7 +36,7 @@ CXXFLAGS = \
 
 LDFLAGS = \
 	-largeaddressaware -nologo -incremental:no -debug \
-	user32.lib kernel32.lib gdi32.lib comctl32.lib uxtheme.lib msimg32.lib comdlg32.lib ole32.lib oleaut32.lib oleacc.lib uuid.lib shlwapi.lib
+	user32.lib kernel32.lib gdi32.lib comctl32.lib uxtheme.lib msimg32.lib comdlg32.lib ole32.lib oleaut32.lib oleacc.lib uuid.lib shlwapi.lib psapi.lib
 
 $(OUT): $(OFILES)
 	link -out:$(OUT) $(OFILES) $(LDFLAGS)

@@ -26,8 +26,7 @@
 #include <windowsx.h>
 #include <shobjidl.h>
 #include <strsafe.h>
-// TODO
-#include <tlhelp32.h>
+#include <psapi.h>
 
 #include <stdint.h>
 #include <string.h>

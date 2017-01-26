@@ -29,7 +29,29 @@ extern int windowClassOf(HWND hwnd, ...);
 extern void enumWindowTree(HWND treeview, HTREEITEM (*f)(HWND treeview, HWND window, HTREEITEM parent));
 
 // process.cpp
+class Process {
+	DWORD pid;
+	HANDLE hProc;
+public:
+	Process(DWORD pid);
+	~Process(void);
+
+	bool Is64Bit(void);
+
+	void *AllocBlock(size_t size);
+	void FreeBlock(void *block);
+	void MakeExecutable(void *block, size_t size);
+
+	void Read(void *base, size_t off, void *buf, size_t len);
+	void Write(void *base, size_t off, const void *buf, size_t len);
+
+	void *GetModuleBase(const WCHAR *modname);
+	void *GetProcAddress(void *modbase, const char *procname);
+
+	HANDLE CreateThread(void *threadProc, void *param);
+};
 extern void initProcess(void);
+extern Process *processFromHWND(HWND hwnd);
 
 // gettheme.cpp
-extern void getWindowTheme(HWND hwnd, WCHAR **pszSubAppName, WCHAR **pszSubIdList);
+extern void getWindowTheme(HWND hwnd, Process *p, WCHAR **pszSubAppName, WCHAR **pszSubIdList);

@@ -83,65 +83,44 @@ const struct archInfo archInfo[] = {
 // this is hardcoded into the above binary blobs
 #define UXPROPSTRINGSIZE 260
 
-static void readpm(HANDLE hProc, void *base, size_t off, void *buf, size_t size)
-{
-	uintptr_t b;
-	SIZE_T actual;
-
-	b = (uintptr_t) base;
-	b += off;
-	base = (void *) b;
-	if (ReadProcessMemory(hProc, base,
-		buf, size, &actual) == 0)
-		panic(L"error reading process memory: %I32d", GetLastError());
-	if (size != actual)
-		panic(L"ReadProcessMemory() failed to read everything; expected %ju, got %ju", size, actual);
-}
-
 static const char *fnGANW = "GetAtomNameW";
 static const char *fnGLE = "GetLastError";
 
-static WCHAR *runThread(HANDLE hProc, const struct archInfo *ai, void *pCode, void *pData)
+static WCHAR *runThread(Process *p, const struct archInfo *ai, void *pCode, void *pData)
 {
 	HANDLE hThread;
 	WCHAR *out;
 	DWORD ret;
 	DWORD le;
 
-	hThread = CreateRemoteThread(hProc, NULL, 0,
-		(LPTHREAD_START_ROUTINE) pCode, pData, 0, NULL);
-	if (hThread == NULL)
-		panic(L"error creating thread to get string from process: %I32d", GetLastError());
+	hThread = p->CreateThread(pCode, pData);
 	// TODO switch to MsgWaitForMultipleObjectsEx()? this code assumes it is atomic with regards to the UI
 	if (WaitForSingleObject(hThread, INFINITE) == WAIT_FAILED)
 		panic(L"error waiting for process string thread to run: %I32d", GetLastError());
 	if (CloseHandle(hThread) == 0)
 		panic(L"error closing thread: %I32d", GetLastError());
 
-	readpm(hProc, pData, ai->offRet, &ret, ai->sizeRet);
-	readpm(hProc, pData, ai->offLastError, &le, ai->sizeLastError);
+	p->Read(pData, ai->offRet, &ret, ai->sizeRet);
+	p->Read(pData, ai->offLastError, &le, ai->sizeLastError);
 	// TODO make sure this logic is right
 	if (ret == 0 && le != ERROR_SUCCESS)
 		return NULL;
 	out = new WCHAR[ret + 1];
-	readpm(hProc, pData, ai->structSize, out, (ret + 1) * sizeof (WCHAR));
+	p->Read(pData, ai->structSize, out, (ret + 1) * sizeof (WCHAR));
 	return out;
 }
 
-void getWindowTheme(HWND hwnd, WCHAR **pszSubAppName, WCHAR **pszSubIdList)
+void getWindowTheme(HWND hwnd, Process *p, WCHAR **pszSubAppName, WCHAR **pszSubIdList)
 {
-	DWORD pid;
-	HANDLE hProc;
 	HANDLE hSubAppName, hSubIdList;
 	ATOM atom;
 	int arch;
 	const struct archInfo *ai;
 	LPVOID pCode, pData;
-	DWORD unused;		// TODO
+	void *pkernel32;
 	uint32_t off32;
 	uint64_t off64;
 	void *off;
-	void *pGetAtomNameW, *pGetLastError;
 
 	*pszSubAppName = NULL;
 	*pszSubIdList = NULL;
@@ -151,55 +130,44 @@ void getWindowTheme(HWND hwnd, WCHAR **pszSubAppName, WCHAR **pszSubIdList)
 		// SetWindowTheme() wasn't called
 		return;
 
-	GetWindowThreadProcessId(hwnd, &pid);
-	hProc = OpenProcess(PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_VM_READ, FALSE, pid);
-	if (hProc == NULL)
-		panic(L"failed to open process for getting window theme: %I32d", GetLastError());
-
 	arch = arch386;
-	if (is64BitProcess(hProc))
+	if (p->Is64Bit())
 		arch = archAMD64;
 	ai = &(archInfo[arch]);
 
-	pCode = VirtualAllocEx(hProc,
-		NULL, ai->nCall,
-		MEM_COMMIT, PAGE_READWRITE);
-	if (pCode == NULL)
-		panic(L"error allocating room for code in process: %I32d", GetLastError());
-	writepm(hProc, pCode, 0, ai->call, ai->nCall);
-	if (VirtualProtectEx(hProc, pCode, ai->nCall, PAGE_EXECUTE_READ, &unused) == 0)
-		panic(L"error marking code in process as executable: %I32d", GetLastError());
+	pCode = p->AllocBlock(ai->nCall);
+	p->Write(pCode, 0, ai->call, ai->nCall);
+	p->MakeExecutable(pCode, ai->nCall);
 
-	// TODO fill with address of GetAtomNameW() and GetLastError()
+	// have some extra padding at the end of the string, just in case
+	pData = p->AllocBlock(ai->structSize + UXPROPSTRINGSIZE + 8);
 
-	pData = VirtualAllocEx(hProc,
-		// have some extra padding at the end of the string, just in case
-		NULL, ai->structSize + UXPROPSTRINGSIZE + 8,
-		MEM_COMMIT, PAGE_READWRITE);
-	if (pData == NULL)
-		panic(L"error allocating room for data in process: %I32d", GetLastError());
+	pkernel32 = p->GetModuleBase(L"kernel32.dll");
 
-	findProcs(hProc, pid, &pGetAtomNameW, &pGetLastError);
+	off = p->GetProcAddress(pkernel32, "GetAtomNameW");
 	switch (arch) {
 	case arch386:
-		off32 = (uint32_t) pGetAtomNameW;
+		off32 = (uint32_t) off;
 		off = &off32;
 		break;
 	case archAMD64:
-		off64 = (uint64_t) pGetAtomNameW;
+		off64 = (uint64_t) off;
 		off = &off64;
 		break;
 	}
-	writepm(hProc, pData, ai->offGANW, off, ai->sizeGANW);
+	p->Write(pData, ai->offGANW, off, ai->sizeGANW);
+	off = p->GetProcAddress(pkernel32, "GetLastError");
 	switch (arch) {
 	case arch386:
-		off32 = (uint32_t) pGetLastError;
+		off32 = (uint32_t) off;
+		off = &off32;
 		break;
 	case archAMD64:
-		off64 = (uint64_t) pGetLastError;
+		off64 = (uint64_t) off;
+		off = &off64;
 		break;
 	}
-	writepm(hProc, pData, ai->offGLE, off, ai->sizeGLE);
+	p->Write(pData, ai->offGLE, off, ai->sizeGLE);
 
 	switch (arch) {
 	case arch386:
@@ -209,24 +177,20 @@ void getWindowTheme(HWND hwnd, WCHAR **pszSubAppName, WCHAR **pszSubIdList)
 		off64 = (uint64_t) (((size_t) pData) + ai->structSize);
 		break;
 	}
-	writepm(hProc, pData, ai->offBuf, off, ai->sizeBuf);
+	p->Write(pData, ai->offBuf, off, ai->sizeBuf);
 
 	if (hSubAppName != NULL) {
 		atom = (ATOM) hSubAppName;
-		writepm(hProc, pData, ai->offAtom, &atom, ai->sizeAtom);
-		*pszSubAppName = runThread(hProc, ai, pCode, pData);
+		p->Write(pData, ai->offAtom, &atom, ai->sizeAtom);
+		*pszSubAppName = runThread(p, ai, pCode, pData);
 	}
 
 	if (hSubIdList != NULL) {
 		atom = (ATOM) hSubIdList;
-		writepm(hProc, pData, ai->offAtom, &atom, ai->sizeAtom);
-		*pszSubIdList = runThread(hProc, ai, pCode, pData);
+		p->Write(pData, ai->offAtom, &atom, ai->sizeAtom);
+		*pszSubIdList = runThread(p, ai, pCode, pData);
 	}
 
-	if (VirtualFreeEx(hProc, pData, 0, MEM_RELEASE) == 0)
-		panic(L"error removing data from process: %I32d", GetLastError());
-	if (VirtualFreeEx(hProc, pCode, 0, MEM_RELEASE) == 0)
-		panic(L"error removing code from process: %I32d", GetLastError());
-	if (CloseHandle(hProc) == 0)
-		panic(L"failed to close process: %I32d", GetLastError());
+	p->FreeBlock(pData);
+	p->FreeBlock(pCode);
 }

@@ -147,15 +147,24 @@ BOOL mainwinClass::onNotify(NMHDR *hdr, LRESULT *lResult)
 	case TVN_SELCHANGEDW:
 		{
 			NMTREEVIEWW *nm = (NMTREEVIEWW *) hdr;
-			WCHAR *pszSubAppName = NULL, *pszSubIdList = NULL;
+			HWND hwnd;
+			// TODO make sure these names are correct
+			WCHAR *pszSubAppName = NULL;
+			WCHAR *pszSubIdList = NULL;
+			Process *p;
 
 			// TODO is there a better way?
-			if (nm->itemNew.lParam != 0)
-			getWindowTheme((HWND) (nm->itemNew.lParam), &pszSubAppName, &pszSubIdList);
+			if (nm->itemNew.lParam == 0)break;
+
+			hwnd = (HWND) (nm->itemNew.lParam);
+			p = processFromHWND(hwnd);
+			getWindowTheme(hwnd, p, &pszSubAppName, &pszSubIdList);
 			MessageBoxW(this->hwnd,
 				(pszSubAppName?pszSubAppName:L"NULL"),
 				(pszSubIdList?pszSubIdList:L"NULL"),
 				MB_OK);
+
+			delete p;
 		}
 	}
 	return FALSE;

@@ -1,48 +1,26 @@
 // 26 january 2017
 #include "barspy.hpp"
 
-class Process {
-	DWORD pid;
-	HANDLE hProc;
-public:
-	Process(DWORD pid);
-	~Process(void);
-
-	bool Is64Bit(void);
-
-	void *AllocBlock(size_t size);
-	void FreeBlock(void *block);
-	void MakeExecutable(void *block);
-
-	void Read(void *base, size_t off, void *buf, size_t len);
-	void Write(void *base, size_t off, const void *buf, size_t len);
-
-	void *GetModuleBase(const WCHAR *modname);
-	void *GetProcAddress(void *modbase, const char *procname);
-
-	HANDLE CreateThread(void *threadProc, void *param);
-};
+// Normally I would only have needed a way to allocate, read, and write process memory to get structures out of controls.
+// The other stuff — the code injection stuff — ... well, just check gettheme.cpp for info.
 
 // might not be available on all systems
 static BOOL (WINAPI *pIsWow64Process)(HANDLE, BOOL *) = NULL;
 static BOOL (WINAPI *pEnumProcessModulesEx)(HANDLE hProcess, HMODULE *, DWORD, LPDWORD, DWORD) = NULL;
 
+// do not check errors; instead treat any errors as "not found" (this is the safest, cleanest way)
 void initProcess(void)
 {
-	HANDLE kernel32;
-	HANDLE psapi;
+	HMODULE kernel32;
+	HMODULE psapi;
 
 	kernel32 = LoadLibraryW(L"kernel32.dll");
-	if (kernel32 == NULL)
-		// this should not happen, but be graceful I guess
-		goto psapi;
-	pIsWow64Process = (BOOL (WINAPI *)(HANDLE, BOOL *)) GetProcAddress(kernel32, "IsWow64Process");
+	if (kernel32 != NULL)
+		pIsWow64Process = (BOOL (WINAPI *)(HANDLE, BOOL *)) GetProcAddress(kernel32, "IsWow64Process");
 
-	psapi = LoadLibraryW("psapi.dll");
-	if (psapi == NULL)
-		// be graceful
-		return;
-	pEnumProcessModulesEx = (BOOL (WINAPI *)(HANDLE hProcess, HMODULE *, DWORD, LPDWORD, DWORD)) GetProcAddress(psapi, "EnumProcessModulesEx");
+	psapi = LoadLibraryW(L"psapi.dll");
+	if (psapi != NULL)
+		pEnumProcessModulesEx = (BOOL (WINAPI *)(HANDLE hProcess, HMODULE *, DWORD, LPDWORD, DWORD)) GetProcAddress(psapi, "EnumProcessModulesEx");
 }
 
 Process::Process(DWORD pid)
@@ -90,12 +68,12 @@ void *Process::AllocBlock(size_t size)
 	ret = VirtualAllocEx(this->hProc,
 		NULL, size,
 		MEM_COMMIT, PAGE_READWRITE);
-	if (pCode == NULL)
+	if (ret == NULL)
 		panic(L"error allocating block in process: %I32d", GetLastError());
 	return ret;
 }
 
-void Proces::FreeBlock(void *block)
+void Process::FreeBlock(void *block)
 {
 	if (VirtualFreeEx(this->hProc, block, 0, MEM_RELEASE) == 0)
 		panic(L"error freeing block from process: %I32d", GetLastError());
@@ -119,7 +97,7 @@ void Process::Read(void *base, size_t off, void *buf, size_t len)
 	b = (uintptr_t) base;
 	b += off;
 	base = (void *) b;
-	if (ReadProcessMemory(hProc, base,
+	if (ReadProcessMemory(this->hProc, base,
 		buf, len, &actual) == 0)
 		panic(L"error reading process memory: %I32d", GetLastError());
 	if (len != actual)
@@ -134,7 +112,7 @@ void Process::Write(void *base, size_t off, const void *buf, size_t len)
 	b = (uintptr_t) base;
 	b += off;
 	base = (void *) b;
-	if (WriteProcessMemory(hProc, base,
+	if (WriteProcessMemory(this->hProc, base,
 		buf, len, &actual) == 0)
 		panic(L"error writing into process memory: %I32d", GetLastError());
 	if (len != actual)
@@ -154,7 +132,7 @@ static void callEnumProcessModules(HANDLE hProc, HMODULE *mods, DWORD cb, LPDWOR
 		panic(L"EnumProcessModules() failed: %I32d", GetLastError());
 }
 
-void *Proces::GetModuleBase(const WCHAR *modname)
+void *Process::GetModuleBase(const WCHAR *modname)
 {
 	HMODULE *mods;
 	DWORD count, needed;
@@ -236,7 +214,7 @@ void *Process::GetProcAddress(void *modbase, const char *procname)
 	for (i = 0; i < exports.NumberOfNames; i++) {
 		this->Read(modbase, names[i], namebuf, (nName + 1) * sizeof (char));
 		// TODO handle forwards
-		if (memcmp(name, procname, (nName + 1) * sizeof (char)) == 0)
+		if (memcmp(namebuf, procname, (nName + 1) * sizeof (char)) == 0)
 			break;
 	}
 
@@ -258,4 +236,12 @@ HANDLE Process::CreateThread(void *threadProc, void *param)
 	if (hThread == NULL)
 		panic(L"error creating thread in process: %I32d", GetLastError());
 	return hThread;
+}
+
+Process *processFromHWND(HWND hwnd)
+{
+	DWORD pid;
+
+	GetWindowThreadProcessId(hwnd, &pid);
+	return new Process(pid);
 }
