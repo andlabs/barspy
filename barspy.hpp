@@ -4,7 +4,7 @@
 
 #define APPTITLE L"BarSpy"
 
-// common.cpp
+// main.cpp
 extern HINSTANCE hInstance;
 extern int nCmdShow;
 extern HICON hDefIcon;
