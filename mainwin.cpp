@@ -144,6 +144,19 @@ BOOL mainwinClass::onNotify(NMHDR *hdr, LRESULT *lResult)
 	switch (hdr->code) {
 	case TVN_GETDISPINFOW:
 		return setWinListLabel((NMTVDISPINFOW *) hdr, lResult);
+	case TVN_SELCHANGEDW:
+		{
+			NMTREEVIEWW *nm = (NMTREEVIEWW *) hdr;
+			WCHAR *pszSubAppName = NULL, *pszSubIdList = NULL;
+
+			// TODO is there a better way?
+			if (nm->itemNew.lParam != 0)
+			getWindowTheme((HWND) (nm->itemNew.lParam), &pszSubAppName, &pszSubIdList);
+			MessageBoxW(this->hwnd,
+				(pszSubAppName?pszSubAppName:L"NULL"),
+				(pszSubIdList?pszSubIdList:L"NULL"),
+				MB_OK);
+		}
 	}
 	return FALSE;
 }

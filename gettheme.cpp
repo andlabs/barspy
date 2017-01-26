@@ -192,7 +192,7 @@ static void findProcs(HANDLE hProc, DWORD pid, void **pGetAtomNameW, void **pGet
 found:
 	nextPos = 0;
 	readpm(hProc, me.modBaseAddr, nextPos, &dosHeader, sizeof (IMAGE_DOS_HEADER));
-	nextPos += sizeof (IMAGE_DOS_HEADER) + dosHeader.e_lfanew + 4;
+	nextPos += dosHeader.e_lfanew + sizeof (DWORD);
 	readpm(hProc, me.modBaseAddr, nextPos, &fileHeader, sizeof (IMAGE_FILE_HEADER));
 	nextPos += sizeof (IMAGE_FILE_HEADER);
 	if (fileHeader.SizeOfOptionalHeader == sizeof (IMAGE_OPTIONAL_HEADER64)) {
@@ -279,7 +279,7 @@ static WCHAR *runThread(HANDLE hProc, const struct archInfo *ai, void *pCode, vo
 	return out;
 }
 
-void getWindowClass(HWND hwnd, WCHAR **pszSubAppName, WCHAR **pszSubIdList)
+void getWindowTheme(HWND hwnd, WCHAR **pszSubAppName, WCHAR **pszSubIdList)
 {
 	DWORD pid;
 	HANDLE hProc;
@@ -378,6 +378,6 @@ void getWindowClass(HWND hwnd, WCHAR **pszSubAppName, WCHAR **pszSubIdList)
 		panic(L"error removing data from process: %I32d", GetLastError());
 	if (VirtualFreeEx(hProc, pCode, 0, MEM_RELEASE) == 0)
 		panic(L"error removing code from process: %I32d", GetLastError());
-	if (CloseHandle(hProc) != 0)
+	if (CloseHandle(hProc) == 0)
 		panic(L"failed to close process: %I32d", GetLastError());
 }
