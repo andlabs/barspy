@@ -14,6 +14,7 @@ CXXFILES = \
 
 HFILES = \
 	barspy.hpp \
+	resources.h \
 	winapi.hpp
 
 RCFILES = \

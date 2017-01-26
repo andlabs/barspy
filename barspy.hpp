@@ -1,5 +1,6 @@
 // 13 december 2016
 #include "winapi.hpp"
+#include "resources.h"
 
 #define APPTITLE L"BarSpy"
 
