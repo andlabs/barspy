@@ -52,12 +52,11 @@ void mainwinClass::relayout(void)
 	client.right -= d->WindowMarginX();
 	client.bottom -= d->WindowMarginY();
 	this->common->Relayout(&client, d);
+	client.top += commonSize.cy + d->PaddingY();
 
-	// TODO fix this
 	if (SetWindowPos(this->currentDetails, NULL,
-		client.left, client.top + commonSize.cy + d->PaddingY(),
-		(client.right - client.top),
-		(client.bottom - (client.top + commonSize.cy + d->PaddingY())),
+		client.left, client.top,
+		client.right - client.left, client.bottom - client.top,
 		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER) == 0)
 		panic(L"error positioning details view: %I32d", GetLastError());
 	// this seems to be necessary to get the control to redraw correctly
@@ -166,7 +165,7 @@ LRESULT mainwinClass::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		this->common = new Common(this->hwnd, 200);
 		// TODO make this default
 		this->common->Show();
-		this->instructions = CreateWindowExW(0,
+		this->instructions = CreateWindowExW(WS_EX_CLIENTEDGE,//TODO 0,
 			L"STATIC", L"Click on a boldface item at left to begin.",
 			WS_CHILD | WS_VISIBLE | SS_CENTER | SS_CENTERIMAGE | SS_NOPREFIX,
 			0, 0, 100, 100,
