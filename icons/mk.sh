@@ -6,3 +6,6 @@ convert \
 convert \
 	StatusAnnotations_Critical_16xLG_color.png \
 	no.ico
+convert \
+	StatusAnnotations_Help_and_inconclusive_16xLG_color.png \
+	unknown.ico

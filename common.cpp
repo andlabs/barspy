@@ -1,6 +1,10 @@
 // 26 january 2017
 #include "barspy.hpp"
 
+// hooray, MAKEINTRESOURCE(iconYes) can't be used with SS_ICON (it crashes)
+#define _MKSSICON(id) L"#" L ## #id
+#define MKSSICON(id) _MKSSICON(id)
+
 static HWND mklabel(const WCHAR *text, HWND parent, int *idoff)
 {
 	HWND hwnd;
@@ -43,11 +47,7 @@ Common::Common(HWND parent, int idoff)
 
 	this->labelUnicode = mklabel(L"Unicode", parent, &idoff);
 	this->iconUnicode = CreateWindowExW(0,
-		L"STATIC",
-		// hooray, MAKEINTRESOURCE(iconYes) can't be used (it crashes)
-#define _MKSSICON(id) L"#" L ## #id
-#define MKSSICON(id) _MKSSICON(id)
-		MKSSICON(iconYes),
+		L"STATIC", MKSSICON(iconUnknown),
 		WS_CHILD | SS_ICON | SS_REALSIZEIMAGE,
 		0, 0, 100, 100,
 		parent, (HMENU) idoff, hInstance, NULL);

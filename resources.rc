@@ -9,3 +9,4 @@ CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "barspy.manifest"
 
 iconYes ICON "icons\\yes.ico"
 iconNo ICON "icons\\no.ico"
+iconUnknown ICON "icons\\unknown.ico"
