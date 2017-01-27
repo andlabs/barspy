@@ -145,7 +145,7 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 	int yEdit = 0;
 	int yIcon = 0;
 	HDWP dwp;
-	int curx;
+	int curx, oldx;
 	int centerWidth;
 
 	if (GetWindowRect(this->iconUnicode, &r) == 0)
@@ -188,6 +188,7 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
 	if (dwp == NULL)
 		panic(L"error rearranging version edit: %I32d", GetLastError());
+	oldx = fill->left + dlabel->TextWidth() + dparent->PaddingX() + this->editVersionWidth;
 
 	delete dedit;
 	delete dlabel;
@@ -245,12 +246,13 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 	delete d;
 
 	// now lay out the center
+	// we'll center it relative to the remaining space, not to the entire width of the details area
 	centerWidth = dparent->PaddingX();
 	dlabel = new Layouter(this->labelUnicode);
 	centerWidth += dlabel->TextWidth() + dparent->PaddingX();
 	centerWidth += r.right - r.left;
-	curx = ((fill->right - fill->left) - centerWidth) / 2;
-	curx += fill->left + dparent->PaddingX();
+	curx = ((curx - oldx) - centerWidth) / 2;
+	curx += oldx + dparent->PaddingX();
 	dwp = DeferWindowPos(dwp,
 		this->labelUnicode, NULL,
 		curx, fill->top + yLabel,
