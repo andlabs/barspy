@@ -70,7 +70,7 @@ void Common::Reset(void)
 		panic(L"error resetting version text: %I32d", GetLastError());
 	if (SetWindowTextW(this->iconUnicode, MKSSICON(iconUnknown)) == 0)
 		panic(L"error resetting Unicode icon: %I32d", GetLastError());
-	if (SetWindowTextW(this->editSWTpszSubAppName, L"N/A") == 0)
+	if (SendMessageW(this->iconUnicode, STM_SETICON, (WPARAM) hIconUnknown, 0) == 0)
 		panic(L"error resetting pszSubAppName text: %I32d", GetLastError());
 	if (SetWindowTextW(this->editSWTpszSubIdList, L"N/A") == 0)
 		panic(L"error resetting pszSubIdList text: %I32d", GetLastError());
@@ -97,16 +97,16 @@ void Common::Reflect(HWND hwnd, Process *p)
 
 	// only get these if this is a known control
 	if (windowClassOf(hwnd, DESIREDCLASSES, NULL) != -1) {
-		const WCHAR *iconToUse;
+		HICON iconToUse;
 
 		// TODO
 		if (SetWindowTextW(this->editVersion, L"9.9") == 0)
 			panic(L"error setting version text: %I32d", GetLastError());
 
-		iconToUse = MKSSICON(iconNo);
+		iconToUse = hIconNo;
 		if (SendMessageW(hwnd, CCM_GETUNICODEFORMAT, 0, 0) != 0)
-			iconToUse = MKSSICON(iconYes);
-		if (SetWindowTextW(this->iconUnicode, iconToUse) == 0)
+			iconToUse = hIconYes;
+		if (SendMessageW(this->iconUnicode, STM_SETICON, (WPARAM) iconToUse, 0) == 0)
 			panic(L"error setting Unicode icon: %I32d", GetLastError());
 	}
 

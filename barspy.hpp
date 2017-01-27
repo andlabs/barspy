@@ -11,6 +11,9 @@ extern HICON hDefIcon;
 extern HCURSOR hDefCursor;
 extern HBRUSH blackBrush;
 extern HFONT hMessageFont;
+extern HICON hIconYes;
+extern HICON hIconNo;
+extern HICON hIconUnknown;
 extern void initCommon(HINSTANCE hInst, int nCS);
 
 // mainwin.cpp
