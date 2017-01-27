@@ -4,6 +4,7 @@ OUT = barspy.exe
 
 CXXFILES = \
 	common.cpp \
+	dllgetver.cpp \
 	enum.cpp \
 	gettheme.cpp \
 	layout.cpp \

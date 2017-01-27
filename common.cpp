@@ -97,11 +97,13 @@ void Common::Reflect(HWND hwnd, Process *p)
 
 	// only get these if this is a known control
 	if (windowClassOf(hwnd, DESIREDCLASSES, NULL) != -1) {
+		WCHAR *dgv;
 		HICON iconToUse;
 
-		// TODO
-		if (SetWindowTextW(this->editVersion, L"9.9") == 0)
+		dgv = getDLLVersion(hwnd, p);
+		if (SetWindowTextW(this->editVersion, dgv) == 0)
 			panic(L"error setting version text: %I32d", GetLastError());
+		delete[] dgv;
 
 		iconToUse = hIconNo;
 		if (SendMessageW(hwnd, CCM_GETUNICODEFORMAT, 0, 0) != 0)

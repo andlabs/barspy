@@ -108,3 +108,6 @@ public:
 
 // gettheme.cpp
 extern void getWindowTheme(HWND hwnd, Process *p, WCHAR **pszSubAppName, WCHAR **pszSubIdList);
+
+// dllgetver.cpp
+extern WCHAR *getDLLVersion(HWND hwnd, Process *p);
