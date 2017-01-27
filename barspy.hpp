@@ -52,32 +52,6 @@ public:
 	int LabelHeight(void);
 };
 
-// common.cpp
-class Common {
-	HWND labelVersion;
-	HWND editVersion;
-	int editVersionWidth;
-
-	HWND labelUnicode;
-	HWND iconUnicode;
-
-	HWND labelSetWindowTheme;
-	HWND editSWTpszSubAppName;
-	int editSWTpszSubAppNameWidth;
-	HWND labelSWTComma;
-	HWND editSWTpszSubIdList;
-	int editSWTpszSubIdListWidth;
-	HWND labelSWTRightParen;
-public:
-	Common(HWND parent, int idoff);
-
-	void Show(void);
-	void Hide(void);
-
-	SIZE MinimumSize(Layouter *dparent);
-	void Relayout(RECT *fill, Layouter *dparent);
-};
-
 // process.cpp
 class Process {
 	DWORD pid;
@@ -102,6 +76,32 @@ public:
 };
 extern void initProcess(void);
 extern Process *processFromHWND(HWND hwnd);
+
+// common.cpp
+class Common {
+	HWND labelVersion;
+	HWND editVersion;
+	int editVersionWidth;
+
+	HWND labelUnicode;
+	HWND iconUnicode;
+
+	HWND labelSetWindowTheme;
+	HWND editSWTpszSubAppName;
+	int editSWTpszSubAppNameWidth;
+	HWND labelSWTComma;
+	HWND editSWTpszSubIdList;
+	int editSWTpszSubIdListWidth;
+	HWND labelSWTRightParen;
+public:
+	Common(HWND parent, int idoff);
+
+	void Reset(void);
+	void Reflect(HWND hwnd, Process *p);
+
+	SIZE MinimumSize(Layouter *dparent);
+	void Relayout(RECT *fill, Layouter *dparent);
+};
 
 // gettheme.cpp
 extern void getWindowTheme(HWND hwnd, Process *p, WCHAR **pszSubAppName, WCHAR **pszSubIdList);

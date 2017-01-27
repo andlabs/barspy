@@ -126,9 +126,6 @@ BOOL mainwinClass::onNotify(NMHDR *hdr, LRESULT *lResult)
 		{
 			NMTREEVIEWW *nm = (NMTREEVIEWW *) hdr;
 			HWND hwnd;
-			// TODO make sure these names are correct
-			WCHAR *pszSubAppName = NULL;
-			WCHAR *pszSubIdList = NULL;
 			Process *p;
 
 			// TODO is there a better way?
@@ -136,12 +133,7 @@ BOOL mainwinClass::onNotify(NMHDR *hdr, LRESULT *lResult)
 
 			hwnd = (HWND) (nm->itemNew.lParam);
 			p = processFromHWND(hwnd);
-			getWindowTheme(hwnd, p, &pszSubAppName, &pszSubIdList);
-			MessageBoxW(this->hwnd,
-				(pszSubAppName?pszSubAppName:L"NULL"),
-				(pszSubIdList?pszSubIdList:L"NULL"),
-				MB_OK);
-
+			this->common->Reflect(hwnd, p);
 			delete p;
 		}
 	}
@@ -163,8 +155,7 @@ LRESULT mainwinClass::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 		if (this->winlist == NULL)
 			panic(L"error creating window list: %I32d", GetLastError());
 		this->common = new Common(this->hwnd, 200);
-		// TODO make this default
-		this->common->Show();
+		this->common->Reset();
 		this->instructions = CreateWindowExW(WS_EX_CLIENTEDGE,//TODO 0,
 			L"STATIC", L"Click on a boldface item at left to begin.",
 			WS_CHILD | WS_VISIBLE | SS_CENTER | SS_CENTERIMAGE | SS_NOPREFIX,

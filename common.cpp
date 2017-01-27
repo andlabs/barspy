@@ -11,7 +11,7 @@ static HWND mklabel(const WCHAR *text, HWND parent, int *idoff)
 
 	hwnd = CreateWindowExW(0,
 		L"STATIC", text,
-		WS_CHILD | SS_LEFTNOWORDWRAP | SS_NOPREFIX,
+		WS_CHILD | WS_VISIBLE | SS_LEFTNOWORDWRAP | SS_NOPREFIX,
 		0, 0, 100, 100,
 		parent, (HMENU) (*idoff), hInstance, NULL);
 	if (hwnd == NULL)
@@ -28,7 +28,7 @@ static HWND mkedit(int width, HWND parent, int *idoff)
 	hwnd = CreateWindowExW(WS_EX_CLIENTEDGE,
 		L"EDIT", L"",
 		// TODO remove READONLY if this ever becomes generic
-		WS_CHILD | ES_AUTOHSCROLL | ES_LEFT | ES_NOHIDESEL | ES_READONLY,
+		WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | ES_LEFT | ES_NOHIDESEL | ES_READONLY,
 		0, 0, width, 100,
 		parent, (HMENU) (*idoff), hInstance, NULL);
 	if (hwnd == NULL)
@@ -42,13 +42,13 @@ static HWND mkedit(int width, HWND parent, int *idoff)
 Common::Common(HWND parent, int idoff)
 {
 	this->labelVersion = mklabel(L"comctl32.dll Version", parent, &idoff);
-	this->editVersionWidth = 30;
+	this->editVersionWidth = 35;
 	this->editVersion = mkedit(this->editVersionWidth, parent, &idoff);
 
 	this->labelUnicode = mklabel(L"Unicode", parent, &idoff);
 	this->iconUnicode = CreateWindowExW(0,
 		L"STATIC", MKSSICON(iconUnknown),
-		WS_CHILD | SS_ICON | SS_REALSIZEIMAGE,
+		WS_CHILD | WS_VISIBLE | SS_ICON | SS_REALSIZEIMAGE,
 		0, 0, 100, 100,
 		parent, (HMENU) idoff, hInstance, NULL);
 	if (this->iconUnicode == NULL)
@@ -64,30 +64,64 @@ Common::Common(HWND parent, int idoff)
 	this->labelSWTRightParen = mklabel(L")", parent, &idoff);
 }
 
-void Common::Show(void)
+void Common::Reset(void)
 {
-	ShowWindow(this->labelVersion, SW_SHOW);
-	ShowWindow(this->editVersion, SW_SHOW);
-	ShowWindow(this->labelUnicode, SW_SHOW);
-	ShowWindow(this->iconUnicode, SW_SHOW);
-	ShowWindow(this->labelSetWindowTheme, SW_SHOW);
-	ShowWindow(this->editSWTpszSubAppName, SW_SHOW);
-	ShowWindow(this->labelSWTComma, SW_SHOW);
-	ShowWindow(this->editSWTpszSubIdList, SW_SHOW);
-	ShowWindow(this->labelSWTRightParen, SW_SHOW);
+	if (SetWindowTextW(this->editVersion, L"N/A") == 0)
+		panic(L"error resetting version text: %I32d", GetLastError());
+	if (SetWindowTextW(this->iconUnicode, MKSSICON(iconUnknown)) == 0)
+		panic(L"error resetting Unicode icon: %I32d", GetLastError());
+	if (SetWindowTextW(this->editSWTpszSubAppName, L"N/A") == 0)
+		panic(L"error resetting pszSubAppName text: %I32d", GetLastError());
+	if (SetWindowTextW(this->editSWTpszSubIdList, L"N/A") == 0)
+		panic(L"error resetting pszSubIdList text: %I32d", GetLastError());
 }
 
-void Common::Hide(void)
+static WCHAR *nullCopy(void)
 {
-	ShowWindow(this->labelVersion, SW_HIDE);
-	ShowWindow(this->editVersion, SW_HIDE);
-	ShowWindow(this->labelUnicode, SW_HIDE);
-	ShowWindow(this->iconUnicode, SW_HIDE);
-	ShowWindow(this->labelSetWindowTheme, SW_HIDE);
-	ShowWindow(this->editSWTpszSubAppName, SW_HIDE);
-	ShowWindow(this->labelSWTComma, SW_HIDE);
-	ShowWindow(this->editSWTpszSubIdList, SW_HIDE);
-	ShowWindow(this->labelSWTRightParen, SW_HIDE);
+	WCHAR *s;
+
+	s = new WCHAR[5];
+	s[0] = L'N';
+	s[1] = L'U';
+	s[2] = L'L';
+	s[3] = L'L';
+	s[4] = L'\0';
+	return s;
+}
+
+void Common::Reflect(HWND hwnd, Process *p)
+{
+	WCHAR *pszSubAppName, *pszSubIdList;
+
+	this->Reset();
+
+	// only get these if this is a known control
+	if (windowClassOf(hwnd, DESIREDCLASSES, NULL) != -1) {
+		const WCHAR *iconToUse;
+
+		// TODO
+		if (SetWindowTextW(this->editVersion, L"9.9") == 0)
+			panic(L"error setting version text: %I32d", GetLastError());
+
+		iconToUse = MKSSICON(iconNo);
+		if (SendMessageW(hwnd, CCM_GETUNICODEFORMAT, 0, 0) != 0)
+			iconToUse = MKSSICON(iconYes);
+		if (SetWindowTextW(this->iconUnicode, iconToUse) == 0)
+			panic(L"error setting Unicode icon: %I32d", GetLastError());
+	}
+
+	// always set this
+	getWindowTheme(hwnd, p, &pszSubAppName, &pszSubIdList);
+	if (pszSubAppName == NULL)
+		pszSubAppName = nullCopy();
+	if (pszSubIdList == NULL)
+		pszSubIdList = nullCopy();
+	if (SetWindowTextW(this->editSWTpszSubAppName, pszSubAppName) == 0)
+		panic(L"error setting pszSubAppName text: %I32d", GetLastError());
+	if (SetWindowTextW(this->editSWTpszSubIdList, pszSubIdList) == 0)
+		panic(L"error setting pszSubIdList text: %I32d", GetLastError());
+	delete[] pszSubIdList;
+	delete[] pszSubAppName;
 }
 
 SIZE Common::MinimumSize(Layouter *dparent)
