@@ -38,12 +38,16 @@ static HWND mkedit(int width, HWND parent, int *idoff)
 Common::Common(HWND parent, int idoff)
 {
 	this->labelVersion = mklabel(L"comctl32.dll Version", parent, &idoff);
-	this->editVersionWidth = 20;
+	this->editVersionWidth = 30;
 	this->editVersion = mkedit(this->editVersionWidth, parent, &idoff);
 
 	this->labelUnicode = mklabel(L"Unicode", parent, &idoff);
 	this->iconUnicode = CreateWindowExW(0,
-		L"STATIC", MAKEINTRESOURCE(iconYes),
+		L"STATIC",
+		// hooray, MAKEINTRESOURCE(iconYes) can't be used (it crashes)
+#define _MKSSICON(id) L"#" L ## #id
+#define MKSSICON(id) _MKSSICON(id)
+		MKSSICON(iconYes),
 		// TODO SS_REALSIZEIMAGE?
 		WS_CHILD | SS_ICON,
 		0, 0, 100, 100,
@@ -155,6 +159,7 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 	if (height < dedit->EditHeight())
 		height = dedit->EditHeight();
 	if (height < (r.bottom - r.top)) {
+		height = (r.bottom - r.top);
 		// icon is largest; make it 0 and vertically center edit
 		yIcon = 0;
 		yEdit = (height - dedit->EditHeight()) / 2;
@@ -180,7 +185,7 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 	dwp = DeferWindowPos(dwp,
 		this->editVersion, NULL,
 		fill->left + dlabel->TextWidth() + dparent->PaddingX(), fill->top + yEdit,
-		this->editVersionWidth, dedit->LabelHeight(),
+		this->editVersionWidth, dedit->EditHeight(),
 		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
 	if (dwp == NULL)
 		panic(L"error rearranging version edit: %I32d", GetLastError());
@@ -258,7 +263,7 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 	delete dlabel;
 	dwp = DeferWindowPos(dwp,
 		this->iconUnicode, NULL,
-		curx, fill->top + yLabel,
+		curx, fill->top + yIcon,
 		0, 0,
 		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOZORDER);
 	if (dwp == NULL)

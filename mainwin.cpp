@@ -7,6 +7,7 @@ class mainwinClass {
 	HWND hwnd;
 	HWND winlist;
 	HWND instructions;
+	Common *common;
 	HWND currentDetails;
 public:
 	mainwinClass(HWND h)
@@ -16,7 +17,7 @@ public:
 
 	~mainwinClass()
 	{
-		// do nothing
+		delete this->common;
 	}
 
 	LRESULT WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -25,68 +26,46 @@ public:
 	BOOL onNotify(NMHDR *hdr, LRESULT *lResult);
 };
 
-void mainwinClass::getDLUBase(int *dluBaseX, int *dluBaseY)
-{
-	HDC dc;
-	HFONT prevfont;
-	TEXTMETRICW tm;
-	SIZE size;
-
-	dc = GetDC(this->hwnd);
-	if (dc == NULL)
-		panic(L"error getting DC in windowClass::getDLUBase(): %I32d", GetLastError());
-	prevfont = (HFONT) SelectObject(dc, hMessageFont);
-	if (prevfont == NULL)
-		panic(L"error selecting font in windowClass::getDLUBase(): %I32d", GetLastError());
-
-	ZeroMemory(&tm, sizeof (TEXTMETRICW));
-	if (GetTextMetricsW(dc, &tm) == 0)
-		panic(L"error getting text metrics in windowClass::getDLUBase(): %I32d", GetLastError());
-	if (GetTextExtentPoint32W(dc, L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 52, &size) == 0)
-		panic(L"error getting text extents in windowClass::getDLUBase(): %I32d", GetLastError());
-
-	*dluBaseX = (int) ((size.cx / 26 + 1) / 2);
-	*dluBaseY = (int) tm.tmHeight;
-
-	SelectObject(dc, prevfont);
-	ReleaseDC(hwnd, dc);
-}
-
 void mainwinClass::relayout(void)
 {
 	RECT client;
-	int dluBaseX, dluBaseY;
-	int marginsX, marginsY, paddingX;
+	Layouter *d;
 	LONG tableWidth;
+	SIZE commonSize;
 
 	if (GetClientRect(this->hwnd, &client) == 0)
 		panic(L"error getting window client rect: %I32d", GetLastError());
+	d = new Layouter(this->hwnd);
 
-	this->getDLUBase(&dluBaseX, &dluBaseY);
-	// TODO sort this out
-	marginsX = MulDiv(7, dluBaseX, 4);
-	marginsY = MulDiv(7, dluBaseY, 8);
-	paddingX = MulDiv(4, dluBaseX, 4);
-
-	tableWidth = (client.right - client.left - 2 * marginsX - paddingX) / 3;
+	tableWidth = (client.right - client.left - 2 * d->WindowMarginX() - d->PaddingX()) / 3;
 
 	if (SetWindowPos(this->winlist, NULL,
-		marginsX, marginsY,
+		d->WindowMarginX(), d->WindowMarginY(),
 		tableWidth,
-		(client.bottom - client.top - 2 * marginsY),
+		(client.bottom - client.top - 2 * d->WindowMarginY()),
 		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER) == 0)
 		panic(L"error positioning window list: %I32d", GetLastError());
 
+	commonSize = this->common->MinimumSize(d);
+	client.left += d->WindowMarginX() + tableWidth + d->PaddingX();
+	client.top += d->WindowMarginY();
+	client.right -= d->WindowMarginX();
+	client.bottom -= d->WindowMarginY();
+	this->common->Relayout(&client, d);
+
+	// TODO fix this
 	if (SetWindowPos(this->currentDetails, NULL,
-		marginsX + tableWidth + paddingX, marginsY,
-		(client.right - client.top - 2 * marginsX - (marginsX + tableWidth + paddingX)),
-		(client.bottom - client.top - 2 * marginsY),
+		client.left, client.top + commonSize.cy + d->PaddingY(),
+		(client.right - client.top),
+		(client.bottom - (client.top + commonSize.cy + d->PaddingY())),
 		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER) == 0)
 		panic(L"error positioning details view: %I32d", GetLastError());
 	// this seems to be necessary to get the control to redraw correctly
 	if (this->currentDetails == this->instructions)
 		if (InvalidateRect(this->instructions, NULL, TRUE) == 0)
 			panic(L"error queueing redraw of instructions label: %I32d", GetLastError());
+
+	delete d;
 }
 
 static HTREEITEM addWindow(HWND treeview, HWND window, HTREEITEM parent)
@@ -184,6 +163,9 @@ LRESULT mainwinClass::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			this->hwnd, (HMENU) 101, hInstance, NULL);
 		if (this->winlist == NULL)
 			panic(L"error creating window list: %I32d", GetLastError());
+		this->common = new Common(this->hwnd, 200);
+		// TODO make this default
+		this->common->Show();
 		this->instructions = CreateWindowExW(0,
 			L"STATIC", L"Click on a boldface item at left to begin.",
 			WS_CHILD | WS_VISIBLE | SS_CENTER | SS_CENTERIMAGE | SS_NOPREFIX,

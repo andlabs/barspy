@@ -99,7 +99,7 @@ int Layouter::EditHeight(void)
 
 int Layouter::LabelYForSiblingY(int siblingY, Layouter *label)
 {
-	return siblingY + this->Y(labelYOffset) + label->InternalLeading();
+	return siblingY + this->Y(labelYOffset) - label->InternalLeading();
 }
 
 int Layouter::LabelHeight(void)
