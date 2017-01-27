@@ -1,28 +1,6 @@
 // 26 january 2017
 #include "barspy.hpp"
 
-class Layouter {
-	int baseX, int baseY;
-	TEXTMETRICW tm;
-	SIZE textSize;
-public:
-	Layouter(HWND hwnd);
-
-	int X(int x);
-	int Y(int y);
-	LONG InternalLeading(void);
-	LONG TextWidth(void);
-
-	// specifics
-	int PaddingX(void);
-	int PaddingY(void);
-	int WindowMarginX(void);
-	int WindowMarginY(void);
-	int EditHeight(void);
-	int LabelYForSiblingY(int siblingY);
-	int LabelHeight(void);
-};
-
 Layouter::Layouter(HWND hwnd)
 {
 	HDC dc;
@@ -31,7 +9,7 @@ Layouter::Layouter(HWND hwnd)
 	LRESULT len;
 	WCHAR *text;
 
-	dc = GetDC(this->hwnd);
+	dc = GetDC(hwnd);
 	if (dc == NULL)
 		panic(L"error getting DC for layout calculations: %I32d", GetLastError());
 	prevfont = (HFONT) SelectObject(dc, hMessageFont);
@@ -49,9 +27,9 @@ Layouter::Layouter(HWND hwnd)
 
 	len = SendMessageW(hwnd, WM_GETTEXTLENGTH, 0, 0);
 	text = new WCHAR[len + 1];
-	if (GetWindowTextW(hwnd, text, len + 1) != n) {
+	if (GetWindowTextW(hwnd, text, (int) (len + 1)) != len)
 		panic(L"error getting window text for layout calculations: %I32d", GetLastError());
-	if (GetTextExtentPoint32W(dc, text, len, &(this->textSize)) == 0)
+	if (GetTextExtentPoint32W(dc, text, (int) len, &(this->textSize)) == 0)
 		panic(L"error getting window text extents for layout calculations: %I32d", GetLastError());
 	delete[] text;
 
@@ -68,7 +46,7 @@ int Layouter::X(int x)
 
 int Layouter::Y(int y)
 {
-	return MulDiv(x, this->baseY, 8);
+	return MulDiv(y, this->baseY, 8);
 }
 
 LONG Layouter::InternalLeading(void)
@@ -119,9 +97,9 @@ int Layouter::EditHeight(void)
 #define labelHeight 8
 #define labelYOffset 3
 
-int Layouter::LabelYForSiblingY(int siblingY)
+int Layouter::LabelYForSiblingY(int siblingY, Layouter *label)
 {
-	return siblingY + this->Y(labelYOffset) + this->InternalLeading();
+	return siblingY + this->Y(labelYOffset) + label->InternalLeading();
 }
 
 int Layouter::LabelHeight(void)

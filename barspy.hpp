@@ -29,6 +29,55 @@ extern int windowClassOf(HWND hwnd, ...);
 // enum.cpp
 extern void enumWindowTree(HWND treeview, HTREEITEM (*f)(HWND treeview, HWND window, HTREEITEM parent));
 
+// layout.cpp
+class Layouter {
+	int baseX, baseY;
+	TEXTMETRICW tm;
+	SIZE textSize;
+public:
+	Layouter(HWND hwnd);
+
+	int X(int x);
+	int Y(int y);
+	LONG InternalLeading(void);
+	LONG TextWidth(void);
+
+	// specifics
+	int PaddingX(void);
+	int PaddingY(void);
+	int WindowMarginX(void);
+	int WindowMarginY(void);
+	int EditHeight(void);
+	int LabelYForSiblingY(int siblingY, Layouter *label);
+	int LabelHeight(void);
+};
+
+// common.cpp
+class Common {
+	HWND labelVersion;
+	HWND editVersion;
+	int editVersionWidth;
+
+	HWND labelUnicode;
+	HWND iconUnicode;
+
+	HWND labelSetWindowTheme;
+	HWND editSWTpszSubAppName;
+	int editSWTpszSubAppNameWidth;
+	HWND labelSWTComma;
+	HWND editSWTpszSubIdList;
+	int editSWTpszSubIdListWidth;
+	HWND labelSWTRightParen;
+public:
+	Common(HWND parent, int idoff);
+
+	void Show(void);
+	void Hide(void);
+
+	SIZE MinimumSize(Layouter *dparent);
+	void Relayout(RECT *fill, Layouter *dparent);
+};
+
 // process.cpp
 class Process {
 	DWORD pid;

@@ -3,8 +3,10 @@
 OUT = barspy.exe
 
 CXXFILES = \
+	common.cpp \
 	enum.cpp \
 	gettheme.cpp \
+	layout.cpp \
 	main.cpp \
 	mainwin.cpp \
 	panic.cpp \
