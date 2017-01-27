@@ -48,8 +48,7 @@ Common::Common(HWND parent, int idoff)
 #define _MKSSICON(id) L"#" L ## #id
 #define MKSSICON(id) _MKSSICON(id)
 		MKSSICON(iconYes),
-		// TODO SS_REALSIZEIMAGE?
-		WS_CHILD | SS_ICON,
+		WS_CHILD | SS_ICON | SS_REALSIZEIMAGE,
 		0, 0, 100, 100,
 		parent, (HMENU) idoff, hInstance, NULL);
 	if (this->iconUnicode == NULL)
