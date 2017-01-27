@@ -62,18 +62,29 @@ Common::Common(HWND parent, int idoff)
 	this->editSWTpszSubIdListWidth = 50;
 	this->editSWTpszSubIdList = mkedit(this->editSWTpszSubIdListWidth, parent, &idoff);
 	this->labelSWTRightParen = mklabel(L")", parent, &idoff);
+
+	this->labelStyles = mklabel(L"Styles", parent, &idoff);
+	this->editStylesWidth = 100;
+	this->editStyles = mkedit(this->editStylesWidth, parent, &idoff);
+	this->labelExStyles = mklabel(L"Extended Styles", parent, &idoff);
+	this->editExStylesWidth = 100;
+	this->editExStyles = mkedit(this->editExStylesWidth, parent, &idoff);
 }
 
 void Common::Reset(void)
 {
 	if (SetWindowTextW(this->editVersion, L"N/A") == 0)
 		panic(L"error resetting version text: %I32d", GetLastError());
-	if (SetWindowTextW(this->iconUnicode, MKSSICON(iconUnknown)) == 0)
-		panic(L"error resetting Unicode icon: %I32d", GetLastError());
 	if (SendMessageW(this->iconUnicode, STM_SETICON, (WPARAM) hIconUnknown, 0) == 0)
+		panic(L"error resetting Unicode icon: %I32d", GetLastError());
+	if (SetWindowTextW(this->editSWTpszSubAppName, L"N/A") == 0)
 		panic(L"error resetting pszSubAppName text: %I32d", GetLastError());
 	if (SetWindowTextW(this->editSWTpszSubIdList, L"N/A") == 0)
 		panic(L"error resetting pszSubIdList text: %I32d", GetLastError());
+	if (SetWindowTextW(this->editStyles, L"N/A") == 0)
+		panic(L"error resetting styles text: %I32d", GetLastError());
+	if (SetWindowTextW(this->editExStyles, L"N/A") == 0)
+		panic(L"error resetting extended styles text: %I32d", GetLastError());
 }
 
 static WCHAR *nullCopy(void)
@@ -131,6 +142,7 @@ SIZE Common::MinimumSize(Layouter *dparent)
 	SIZE ret;
 	Layouter *d;
 	RECT r;
+	LONG editHeight;
 
 	ret.cx = 0;
 	ret.cy = 0;
@@ -142,8 +154,9 @@ SIZE Common::MinimumSize(Layouter *dparent)
 
 	d = new Layouter(this->editVersion);
 	ret.cx += this->editVersionWidth;
-	if (ret.cy < d->EditHeight())
-		ret.cy = d->EditHeight();
+	editHeight = d->EditHeight();
+	if (ret.cy < editHeight)
+		ret.cy = editHeight;
 	delete d;
 
 	ret.cx += dparent->PaddingX();
@@ -169,6 +182,17 @@ SIZE Common::MinimumSize(Layouter *dparent)
 	ret.cx += d->TextWidth();
 	delete d;
 
+	// TODO don't assume the label's bottom will be above the edit's bottom
+	ret.cy += 2 * dparent->PaddingY() + 2 * editHeight;
+	d = new Layouter(this->labelStyles);
+	if (ret.cx < (d->TextWidth() + dparent->PaddingX() + this->editStylesWidth))
+		ret.cx = (d->TextWidth() + dparent->PaddingX() + this->editStylesWidth);
+	delete d;
+	d = new Layouter(this->labelExStyles);
+	if (ret.cx < (d->TextWidth() + dparent->PaddingX() + this->editExStylesWidth))
+		ret.cx = (d->TextWidth() + dparent->PaddingX() + this->editExStylesWidth);
+	delete d;
+
 	return ret;
 }
 
@@ -183,6 +207,7 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 	HDWP dwp;
 	int curx, oldx;
 	int centerWidth;
+	int cury;
 
 	if (GetWindowRect(this->iconUnicode, &r) == 0)
 		panic(L"error getting window rect of Unicode icon: %I32d", GetLastError());
@@ -305,6 +330,47 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOZORDER);
 	if (dwp == NULL)
 		panic(L"error moving Unicode icon: %I32d", GetLastError());
+
+	cury = fill->top + height + dparent->PaddingY();
+	d = new Layouter(this->labelStyles);
+	curx = fill->left + d->TextWidth() + dparent->PaddingX();
+	delete d;
+	d = new Layouter(this->labelExStyles);
+	if (curx < (fill->left + d->TextWidth() + dparent->PaddingX()))
+		curx = (fill->left + d->TextWidth() + dparent->PaddingX());
+	dlabel = d;
+	dedit = new Layouter(this->editStyles);
+	dwp = DeferWindowPos(dwp,
+		this->labelStyles, NULL,
+		fill->left, cury + (yLabel - yEdit),
+		(curx - dparent->PaddingX()) - fill->left, dlabel->LabelHeight(),
+		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
+	if (dwp == NULL)
+		panic(L"error moving Styles label: %I32d", GetLastError());
+	dwp = DeferWindowPos(dwp,
+		this->editStyles, NULL,
+		curx, cury,
+		fill->right - curx, dedit->EditHeight(),
+		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
+	if (dwp == NULL)
+		panic(L"error moving Styles edit: %I32d", GetLastError());
+	cury += dedit->EditHeight() + dparent->PaddingY();
+	dwp = DeferWindowPos(dwp,
+		this->labelExStyles, NULL,
+		fill->left, cury + (yLabel - yEdit),
+		(curx - dparent->PaddingX()) - fill->left, dlabel->LabelHeight(),
+		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
+	if (dwp == NULL)
+		panic(L"error moving Extended Styles label: %I32d", GetLastError());
+	dwp = DeferWindowPos(dwp,
+		this->editExStyles, NULL,
+		curx, cury,
+		fill->right - curx, dedit->EditHeight(),
+		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
+	if (dwp == NULL)
+		panic(L"error moving Extended Styles edit: %I32d", GetLastError());
+	delete dedit;
+	delete d;
 
 	if (EndDeferWindowPos(dwp) == 0)
 		panic(L"error committing new common section control positions: %I32d", GetLastError());

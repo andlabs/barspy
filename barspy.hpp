@@ -96,6 +96,13 @@ class Common {
 	HWND editSWTpszSubIdList;
 	int editSWTpszSubIdListWidth;
 	HWND labelSWTRightParen;
+
+	HWND labelStyles;
+	HWND editStyles;
+	int editStylesWidth;
+	HWND labelExStyles;
+	HWND editExStyles;
+	int editExStylesWidth;
 public:
 	Common(HWND parent, int idoff);
 
