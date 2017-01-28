@@ -114,6 +114,7 @@ public:
 	SIZE MinimumSize(Layouter *dparent);
 	void Relayout(RECT *fill, Layouter *dparent);
 };
+extern void setDrawTextFlagsEdit(HWND edit, UINT relevant);
 
 // gettheme.cpp
 extern void getWindowTheme(HWND hwnd, Process *p, WCHAR **pszSubAppName, WCHAR **pszSubIdList);

@@ -452,3 +452,44 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 	if (EndDeferWindowPos(dwp) == 0)
 		panic(L"error committing new common section control positions: %I32d", GetLastError());
 }
+
+// TODO find a better place for this; it's only here because it uses the TRY() macro
+void setDrawTextFlagsEdit(HWND edit, UINT relevant)
+{
+	const WCHAR *prefix = L"";
+	std::wostringstream ss;
+	std::wstring s;
+
+	TRY(DT_CENTER)
+	TRY(DT_RIGHT)
+	TRY(DT_VCENTER)
+	TRY(DT_BOTTOM)
+	TRY(DT_WORDBREAK)
+	TRY(DT_SINGLELINE)
+	TRY(DT_EXPANDTABS)
+	TRY(DT_TABSTOP)
+	TRY(DT_NOCLIP)
+	TRY(DT_EXTERNALLEADING)
+	TRY(DT_CALCRECT)
+	TRY(DT_NOPREFIX)
+	TRY(DT_INTERNAL)
+	TRY(DT_EDITCONTROL)
+	TRY(DT_PATH_ELLIPSIS)
+	TRY(DT_END_ELLIPSIS)
+	TRY(DT_MODIFYSTRING)
+	TRY(DT_RTLREADING)
+	TRY(DT_WORD_ELLIPSIS)
+	TRY(DT_NOFULLWIDTHCHARBREAK)
+	TRY(DT_HIDEPREFIX)
+	TRY(DT_PREFIXONLY)
+	if (relevant != 0) {
+		ss << prefix << L"0x";
+		ss.fill(L'0');
+		ss.setf(ss.hex | ss.uppercase, ss.basefield | ss.uppercase);
+		ss.width(8);
+		ss << relevant;
+	}
+	s = ss.str();		// to be safe
+	if (SetWindowTextW(edit, s.c_str()) == 0)
+		panic(L"error setting DrawText() flag text: %I32d", GetLastError());
+}
