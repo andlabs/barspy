@@ -117,7 +117,7 @@ static void setToolbarStyleEdit(HWND edit, HWND toolbar)
 	if (relevant != 0) {
 		ss << prefix << L"0x";
 		ss.fill(L'0');
-		ss.setf(ss.hex | ss.uppercase);
+		ss.setf(ss.hex | ss.uppercase, ss.basefield | ss.uppercase);
 		ss.width(4);
 		ss << relevant;
 	}
@@ -133,7 +133,7 @@ static void setToolbarExStyleEdit(HWND edit, HWND toolbar)
 	std::wostringstream ss;
 	std::wstring s;
 
-	relevant = (DWORD) GetWindowLongPtrW(toolbar, GWL_EXSTYLE);
+	relevant = (DWORD) SendMessageW(toolbar, TB_GETEXTENDEDSTYLE, 0, 0);
 	TRY(TBSTYLE_EX_DRAWDDARROWS)
 	TRY(TBSTYLE_EX_MULTICOLUMN)
 	TRY(TBSTYLE_EX_VERTICAL)
@@ -143,8 +143,7 @@ static void setToolbarExStyleEdit(HWND edit, HWND toolbar)
 	if (relevant != 0) {
 		ss << prefix << L"0x";
 		ss.fill(L'0');
-		// TODO this has no effect? also everywhere else
-		ss.setf(ss.hex | ss.uppercase);
+		ss.setf(ss.hex | ss.uppercase, ss.basefield | ss.uppercase);
 		ss.width(8);
 		ss << relevant;
 	}
