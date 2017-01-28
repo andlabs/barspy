@@ -67,3 +67,24 @@ int windowClassOf(HWND hwnd, ...)
 	va_end(ap);
 	return -1;
 }
+
+HDWP deferWindowPos(HDWP dwp, HWND hwnd, int x, int y, int width, int height, UINT flags)
+{
+	flags |= SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER;
+	if (dwp == NULL) {
+		if (SetWindowPos(hwnd, NULL,
+			x, y,
+			width, height,
+			flags) == 0)
+			panic(L"SetWindowPos() failed: %I32d", GetLastError());
+		return NULL;
+	}
+	dwp = DeferWindowPos(dwp,
+		hwnd, NULL,
+		x, y,
+		width, height,
+		flags);
+	if (dwp == NULL)
+		panic(L"DeferWindowPos() failed: %I32d", GetLastError());
+	return dwp;
+}

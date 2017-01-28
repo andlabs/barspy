@@ -27,6 +27,7 @@ extern int windowClassOf(HWND hwnd, ...);
 #define DESIREDCLASSES TOOLBARCLASSNAMEW, REBARCLASSNAMEW
 #define DESIREDTOOLBAR 0
 #define DESIREDREBAR 1
+extern HDWP deferWindowPos(HDWP dwp, HWND hwnd, int x, int y, int width, int height, UINT flags);
 
 // enum.cpp
 extern void enumWindowTree(HWND treeview, HTREEITEM (*f)(HWND treeview, HWND window, HTREEITEM parent));

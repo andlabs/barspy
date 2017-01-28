@@ -111,21 +111,123 @@ int Layouter::LabelHeight(void)
 	return this->Y(labelHeight);
 }
 
+LONG longestTextWidth(const std::vector<HWND> hwnds)
+{
+	LONG current, next;
+
+	current = 0;
+	for (auto hwnd : hwnds) {
+		next = Layouter(hwnd).TextWidth();
+		if (current < next)
+			current = next;
+	}
+	return current;
+}
+
 LONG longestTextWidth(HWND hwnd, ...)
 {
 	va_list ap;
-	LONG current, next;
+	std::vector<HWND> hwnds;
 
-	current = Layouter(hwnd).TextWidth();
+	if (hwnds.capacity() < 16)
+		hwnds.reserve(16);
+	hwnds.push_back(hwnd);
 	va_start(ap, hwnd);
 	for (;;) {
 		hwnd = va_arg(ap, HWND);
 		if (hwnd == NULL)
 			break;
-		next = Layouter(hwnd).TextWidth();
-		if (current < next)
-			current = next;
+		hwnds.push_back(hwnd);
 	}
 	va_end(ap);
-	return current;
+	return longestTextWidth(hwnds);
+}
+
+class Form {
+	HWND parent;
+	int id;
+	std::vector<HWND> labels;
+	std::vector<HWND> edits;
+	HDWP relayout(HDWP dwp, LONG x, LONG y, LONG width, bool widthIsEditOnly, Layouter *dparent);
+public:
+	Form(HWND parent, int id = 100);
+	void Add(const WCHAR *msg);
+	void SetText(int id, const WCHAR *text);
+	SIZE MinimumSize(LONG minEditWidth, Layouter *dparent);
+	HDWP Relayout(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent);
+	HDWP RelayoutEditWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent);
+};
+
+Form::Form(HWND parent, int id)
+{
+	this->parent = parent;
+	this->id = id;
+	if (this->labels.capacity() < 16)
+		this->labels.reserve(16);
+	if (this->edits.capacity() < 16)
+		this->edits.reserve(16);
+}
+
+void Form::Add(const WCHAR *msg)
+{
+	HWND hwnd;
+
+	hwnd = CreateWindowExW(0,
+		L"STATIC", msg,
+		WS_CHILD | WS_VISIBLE | SS_LEFTNOWORDWRAP | SS_NOPREFIX,
+		0, 0, 100, 100,
+		this->parent, (HMENU) (this->id), hInstance, NULL);
+	if (hwnd == NULL)
+		panic(L"error creating label: %I32d", GetLastError());
+	SendMessageW(hwnd, WM_SETFONT, (WPARAM) hMessageFont, TRUE);
+	this->labels.push_back(hwnd);
+	this->id++;
+
+	hwnd = CreateWindowExW(WS_EX_CLIENTEDGE,
+		L"EDIT", L"",
+		// TODO remove READONLY if this ever becomes an editor instead of just a viewer
+		WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | ES_LEFT | ES_NOHIDESEL | ES_READONLY,
+		0, 0, 100, 100,
+		this->parent, (HMENU) (this->id), hInstance, NULL);
+	if (hwnd == NULL)
+		panic(L"error creating edit: %I32d", GetLastError());
+	SendMessageW(hwnd, WM_SETFONT, (WPARAM) hMessageFont, TRUE);
+	this->edits.push_back(hwnd);
+	this->id++;
+}
+
+void Form::SetText(int id, const WCHAR *text)
+{
+	if (SetWindowTextW(this->edits[id], text) == 0)
+		panic(L"error setting form edit text: %I32d", GetLastError());
+}
+
+// TODO optional arrange horizontally
+SIZE Form::MinimumSize(LONG minEditWidth, Layouter *dparent)
+{
+	SIZE s;
+	LONG minLabelWidth;
+
+	minLabelWidth = longestTextWidth(this->labels);
+	// TODO optional padding
+	s.cx = minLabelWidth + dparent->PaddingX() + minEditWidth;
+	// TODO make sure label height + offset is always < edit height
+	// this intuitively seems to be so
+	s.cy = Layouter(this->edits[0]).EditHeight() * this->edits.size();
+	s.cy += dparent->PaddingY() * (this->edits.size() - 1);
+	return s;
+}
+
+HDWP Form::relayout(HDWP dwp, LONG x, LONG y, LONG width, bool widthIsEditOnly, Layouter *dparent)
+{
+}
+
+HDWP Form::Relayout(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent)
+{
+	this->relayout(dwp, x, y, width, false, dparent);
+}
+
+HDWP Form::RelayoutEditWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent)
+{
+	this->relayout(dwp, x, y, width, true, dparent);
 }

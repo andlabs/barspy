@@ -28,7 +28,7 @@ static HWND mkedit(int width, HWND parent, int *idoff)
 		0, 0, width, 100,
 		parent, (HMENU) (*idoff), hInstance, NULL);
 	if (hwnd == NULL)
-		panic(L"error creating label for common properties view: %I32d", GetLastError());
+		panic(L"error creating edit for common properties view: %I32d", GetLastError());
 	SendMessageW(hwnd, WM_SETFONT, (WPARAM) hMessageFont, TRUE);
 	(*idoff)++;
 	return hwnd;
