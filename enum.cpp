@@ -7,6 +7,7 @@ struct enumTree {
 	HTREEITEM parent;
 };
 
+// TODO this adds duplicates because EnumChildWindows() already recurses
 static BOOL CALLBACK ewtEach(HWND hwnd, LPARAM lParam)
 {
 	struct enumTree *parent = (struct enumTree *) lParam;
