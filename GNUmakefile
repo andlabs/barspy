@@ -3,6 +3,7 @@
 OUT = barspy.exe
 
 CXXFILES = \
+	checkmark.cpp \
 	common.cpp \
 	dllgetver.cpp \
 	enum.cpp \

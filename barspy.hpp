@@ -11,9 +11,6 @@ extern HICON hDefIcon;
 extern HCURSOR hDefCursor;
 extern HBRUSH blackBrush;
 extern HFONT hMessageFont;
-extern HICON hIconYes;
-extern HICON hIconNo;
-extern HICON hIconUnknown;
 extern void initCommon(HINSTANCE hInst, int nCS);
 
 // mainwin.cpp
@@ -33,6 +30,15 @@ extern int windowClassOf(HWND hwnd, ...);
 
 // enum.cpp
 extern void enumWindowTree(HWND treeview, HTREEITEM (*f)(HWND treeview, HWND window, HTREEITEM parent));
+
+// checkmark.cpp
+extern HICON hIconYes;
+extern HICON hIconNo;
+extern HICON hIconUnknown;
+extern void initCheckmarks(void);
+extern HWND newCheckmark(HWND parent, HMENU id);
+extern void setCheckmarkIcon(HWND hwnd, HICON icon);
+extern SIZE checkmarkSize(HWND hwnd);
 
 // layout.cpp
 class Layouter {

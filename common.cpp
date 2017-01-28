@@ -1,10 +1,6 @@
 // 26 january 2017
 #include "barspy.hpp"
 
-// hooray, MAKEINTRESOURCE(iconYes) can't be used with SS_ICON (it crashes)
-#define _MKSSICON(id) L"#" L ## #id
-#define MKSSICON(id) _MKSSICON(id)
-
 static HWND mklabel(const WCHAR *text, HWND parent, int *idoff)
 {
 	HWND hwnd;
@@ -46,13 +42,7 @@ Common::Common(HWND parent, int idoff)
 	this->editVersion = mkedit(this->editVersionWidth, parent, &idoff);
 
 	this->labelUnicode = mklabel(L"Unicode", parent, &idoff);
-	this->iconUnicode = CreateWindowExW(0,
-		L"STATIC", MKSSICON(iconUnknown),
-		WS_CHILD | WS_VISIBLE | SS_ICON | SS_REALSIZEIMAGE,
-		0, 0, 100, 100,
-		parent, (HMENU) idoff, hInstance, NULL);
-	if (this->iconUnicode == NULL)
-		panic(L"error creating Unicode icon static control: %I32d", GetLastError());
+	this->iconUnicode = newCheckmark(parent, (HMENU) idoff);
 	idoff++;
 
 	this->labelSetWindowTheme = mklabel(L"SetWindowTheme(", parent, &idoff);
@@ -75,8 +65,7 @@ void Common::Reset(void)
 {
 	if (SetWindowTextW(this->editVersion, L"N/A") == 0)
 		panic(L"error resetting version text: %I32d", GetLastError());
-	if (SendMessageW(this->iconUnicode, STM_SETICON, (WPARAM) hIconUnknown, 0) == 0)
-		panic(L"error resetting Unicode icon: %I32d", GetLastError());
+	setCheckmarkIcon(this->iconUnicode, hIconUnknown);
 	if (SetWindowTextW(this->editSWTpszSubAppName, L"N/A") == 0)
 		panic(L"error resetting pszSubAppName text: %I32d", GetLastError());
 	if (SetWindowTextW(this->editSWTpszSubIdList, L"N/A") == 0)
@@ -186,8 +175,7 @@ void Common::Reflect(HWND hwnd, Process *p)
 		iconToUse = hIconNo;
 		if (SendMessageW(hwnd, CCM_GETUNICODEFORMAT, 0, 0) != 0)
 			iconToUse = hIconYes;
-		if (SendMessageW(this->iconUnicode, STM_SETICON, (WPARAM) iconToUse, 0) == 0)
-			panic(L"error setting Unicode icon: %I32d", GetLastError());
+		setCheckmarkIcon(this->iconUnicode, iconToUse);
 
 		switch (wc) {
 		case DESIREDTOOLBAR:
@@ -218,7 +206,7 @@ SIZE Common::MinimumSize(Layouter *dparent)
 {
 	SIZE ret;
 	Layouter *d;
-	RECT r;
+	SIZE checkSize;
 	LONG editHeight;
 
 	ret.cx = 0;
@@ -240,11 +228,10 @@ SIZE Common::MinimumSize(Layouter *dparent)
 	d = new Layouter(this->labelUnicode);
 	ret.cx += d->TextWidth() + dparent->PaddingX();
 	delete d;
-	if (GetWindowRect(this->iconUnicode, &r) == 0)
-		panic(L"error getting window rect of Unicode icon for measurement: %I32d", GetLastError());
-	ret.cx += r.right - r.left;
-	if (ret.cy < (r.bottom - r.top))
-		ret.cy = (r.bottom - r.top);
+	checkSize = checkmarkSize(this->iconUnicode);
+	ret.cx += checkSize.cx;
+	if (ret.cy < checkSize.cy)
+		ret.cy = checkSize.cy;
 	ret.cx += dparent->PaddingX();
 
 	d = new Layouter(this->labelSetWindowTheme);
@@ -276,7 +263,7 @@ SIZE Common::MinimumSize(Layouter *dparent)
 void Common::Relayout(RECT *fill, Layouter *dparent)
 {
 	Layouter *d, *dlabel, *dedit;
-	RECT r;
+	SIZE checkSize;
 	int height;
 	int yLabel = 0;
 	int yEdit = 0;
@@ -286,8 +273,7 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 	int centerWidth;
 	int cury;
 
-	if (GetWindowRect(this->iconUnicode, &r) == 0)
-		panic(L"error getting window rect of Unicode icon: %I32d", GetLastError());
+	checkSize = checkmarkSize(this->iconUnicode);
 
 	// TODO what if the label height is taller than the edit height?
 	dlabel = new Layouter(this->labelVersion);
@@ -295,15 +281,15 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 	dedit = new Layouter(this->editVersion);
 	if (height < dedit->EditHeight())
 		height = dedit->EditHeight();
-	if (height < (r.bottom - r.top)) {
-		height = (r.bottom - r.top);
+	if (height < checkSize.cy) {
+		height = checkSize.cy;
 		// icon is largest; make it 0 and vertically center edit
 		yIcon = 0;
 		yEdit = (height - dedit->EditHeight()) / 2;
 	} else {
 		// edit is largest; make it 0 and vertically center icon
 		yEdit = 0;
-		yIcon = (height - (r.bottom - r.top)) / 2;
+		yIcon = (height - checkSize.cy) / 2;
 	}
 	yLabel = dparent->LabelYForSiblingY(yEdit, dlabel);
 
@@ -388,7 +374,7 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 	centerWidth = dparent->PaddingX();
 	dlabel = new Layouter(this->labelUnicode);
 	centerWidth += dlabel->TextWidth() + dparent->PaddingX();
-	centerWidth += r.right - r.left;
+	centerWidth += checkSize.cx;
 	curx = ((curx - oldx) - centerWidth) / 2;
 	curx += oldx + dparent->PaddingX();
 	dwp = DeferWindowPos(dwp,

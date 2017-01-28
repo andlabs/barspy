@@ -7,9 +7,6 @@ HICON hDefIcon;
 HCURSOR hDefCursor;
 HBRUSH blackBrush;
 HFONT hMessageFont;
-HICON hIconYes;
-HICON hIconNo;
-HICON hIconUnknown;
 
 void initCommon(HINSTANCE hInst, int nCS)
 {
@@ -47,25 +44,7 @@ void initCommon(HINSTANCE hInst, int nCS)
 		panic(L"error calling CreateFontIndirectW() to load default messagebox font: %I32d", GetLastError());
 
 	initProcess();
-
-	hIconYes = (HICON) LoadImage(hInstance, MAKEINTRESOURCE(iconYes),
-		IMAGE_ICON,
-		0, 0,
-		0);
-	if (hIconYes == NULL)
-		panic(L"error loading Yes icon: %I32d", GetLastError());
-	hIconNo = (HICON) LoadImage(hInstance, MAKEINTRESOURCE(iconNo),
-		IMAGE_ICON,
-		0, 0,
-		0);
-	if (hIconNo == NULL)
-		panic(L"error loading No icon: %I32d", GetLastError());
-	hIconUnknown = (HICON) LoadImage(hInstance, MAKEINTRESOURCE(iconUnknown),
-		IMAGE_ICON,
-		0, 0,
-		0);
-	if (hIconUnknown == NULL)
-		panic(L"error loading Unknown icon: %I32d", GetLastError());
+	initCheckmarks();
 }
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
