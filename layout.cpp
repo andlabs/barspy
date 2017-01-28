@@ -1,6 +1,9 @@
 // 26 january 2017
 #include "barspy.hpp"
 
+// TODO this positions coordinates by parents and sizes by selves
+// I forget if I ever asked if the children of windows had to have the same DPI as their parents... but if so, this is wrong
+
 Layouter::Layouter(HWND hwnd)
 {
 	HDC dc;
@@ -106,4 +109,23 @@ int Layouter::LabelYForSiblingY(int siblingY, Layouter *label)
 int Layouter::LabelHeight(void)
 {
 	return this->Y(labelHeight);
+}
+
+LONG longestTextWidth(HWND hwnd, ...)
+{
+	va_list ap;
+	LONG current, next;
+
+	current = Layouter(hwnd).TextWidth();
+	va_start(ap, hwnd);
+	for (;;) {
+		hwnd = va_arg(ap, HWND);
+		if (hwnd == NULL)
+			break;
+		next = Layouter(hwnd).TextWidth();
+		if (current < next)
+			current = next;
+	}
+	va_end(ap);
+	return current;
 }

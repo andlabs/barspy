@@ -56,6 +56,7 @@ public:
 	int LabelYForSiblingY(int siblingY, Layouter *label);
 	int LabelHeight(void);
 };
+extern LONG longestTextWidth(HWND hwnd, ...);
 
 // process.cpp
 class Process {
