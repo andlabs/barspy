@@ -87,6 +87,72 @@ void Common::Reset(void)
 		panic(L"error resetting extended styles text: %I32d", GetLastError());
 }
 
+#define TRY(bit) if ((relevant & bit) != 0) { ss << prefix << #bit; prefix = L" | "; relevant &= ~(bit); }
+#define TRYCC \
+	TRY(CCS_TOP) \
+	TRY(CCS_NOMOVEY) \
+	TRY(CCS_NORESIZE) \
+	TRY(CCS_NOPARENTALIGN) \
+	TRY(CCS_ADJUSTABLE) \
+	TRY(CCS_NODIVIDER) \
+	TRY(CCS_VERT)
+
+static void setToolbarStyleEdit(HWND edit, HWND toolbar)
+{
+	uint16_t relevant;
+	const WCHAR *prefix = L"";
+	std::wostringstream ss;
+	std::wstring s;
+
+	relevant = (uint16_t) (GetWindowLongPtrW(toolbar, GWL_STYLE) & 0xFFFF);
+	TRYCC
+	TRY(TBSTYLE_TOOLTIPS)
+	TRY(TBSTYLE_WRAPABLE)
+	TRY(TBSTYLE_ALTDRAG)
+	TRY(TBSTYLE_FLAT)
+	TRY(TBSTYLE_LIST)
+	TRY(TBSTYLE_CUSTOMERASE)
+	TRY(TBSTYLE_REGISTERDROP)
+	TRY(TBSTYLE_TRANSPARENT)
+	if (relevant != 0) {
+		ss << prefix << L"0x";
+		ss.fill(L'0');
+		ss.setf(ss.hex | ss.uppercase);
+		ss.width(4);
+		ss << relevant;
+	}
+	s = ss.str();		// to be safe
+	if (SetWindowTextW(edit, s.c_str()) == 0)
+		panic(L"error setting toolbar Style text: %I32d", GetLastError());
+}
+
+static void setToolbarExStyleEdit(HWND edit, HWND toolbar)
+{
+	DWORD relevant;
+	const WCHAR *prefix = L"";
+	std::wostringstream ss;
+	std::wstring s;
+
+	relevant = (DWORD) GetWindowLongPtrW(toolbar, GWL_EXSTYLE);
+	TRY(TBSTYLE_EX_DRAWDDARROWS)
+	TRY(TBSTYLE_EX_MULTICOLUMN)
+	TRY(TBSTYLE_EX_VERTICAL)
+	TRY(TBSTYLE_EX_MIXEDBUTTONS)
+	TRY(TBSTYLE_EX_HIDECLIPPEDBUTTONS)
+	TRY(TBSTYLE_EX_DOUBLEBUFFER)
+	if (relevant != 0) {
+		ss << prefix << L"0x";
+		ss.fill(L'0');
+		// TODO this has no effect? also everywhere else
+		ss.setf(ss.hex | ss.uppercase);
+		ss.width(8);
+		ss << relevant;
+	}
+	s = ss.str();		// to be safe
+	if (SetWindowTextW(edit, s.c_str()) == 0)
+		panic(L"error setting toolbar Extended Style text: %I32d", GetLastError());
+}
+
 static WCHAR *nullCopy(void)
 {
 	WCHAR *s;
@@ -102,12 +168,14 @@ static WCHAR *nullCopy(void)
 
 void Common::Reflect(HWND hwnd, Process *p)
 {
+	int wc;
 	WCHAR *pszSubAppName, *pszSubIdList;
 
 	this->Reset();
 
 	// only get these if this is a known control
-	if (windowClassOf(hwnd, DESIREDCLASSES, NULL) != -1) {
+	wc = windowClassOf(hwnd, DESIREDCLASSES, NULL);
+	if (wc != -1) {
 		WCHAR *dgv;
 		HICON iconToUse;
 
@@ -121,6 +189,16 @@ void Common::Reflect(HWND hwnd, Process *p)
 			iconToUse = hIconYes;
 		if (SendMessageW(this->iconUnicode, STM_SETICON, (WPARAM) iconToUse, 0) == 0)
 			panic(L"error setting Unicode icon: %I32d", GetLastError());
+
+		switch (wc) {
+		case DESIREDTOOLBAR:
+			setToolbarStyleEdit(this->editStyles, hwnd);
+			setToolbarExStyleEdit(this->editExStyles, hwnd);
+			break;
+		case DESIREDREBAR:
+			// TODO
+			break;
+		}
 	}
 
 	// always set this

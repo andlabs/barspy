@@ -28,6 +28,8 @@ extern int classNameOf(WCHAR *classname, ...);
 extern WCHAR *windowClass(HWND hwnd);
 extern int windowClassOf(HWND hwnd, ...);
 #define DESIREDCLASSES TOOLBARCLASSNAMEW, REBARCLASSNAMEW
+#define DESIREDTOOLBAR 0
+#define DESIREDREBAR 1
 
 // enum.cpp
 extern void enumWindowTree(HWND treeview, HTREEITEM (*f)(HWND treeview, HWND window, HTREEITEM parent));
