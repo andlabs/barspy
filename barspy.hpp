@@ -162,10 +162,7 @@ extern Process *processFromHWND(HWND hwnd);
 // common.cpp
 class Common {
 	Form version;
-
-	HWND labelUnicode;
-	HWND iconUnicode;
-
+	Form unicode;
 	Chain setWindowTheme;
 
 	Form styles;

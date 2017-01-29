@@ -1,22 +1,6 @@
 // 26 january 2017
 #include "barspy.hpp"
 
-static HWND mklabel(const WCHAR *text, HWND parent, int *idoff)
-{
-	HWND hwnd;
-
-	hwnd = CreateWindowExW(0,
-		L"STATIC", text,
-		WS_CHILD | WS_VISIBLE | SS_LEFTNOWORDWRAP | SS_NOPREFIX,
-		0, 0, 100, 100,
-		parent, (HMENU) (*idoff), hInstance, NULL);
-	if (hwnd == NULL)
-		panic(L"error creating label for common properties view: %I32d", GetLastError());
-	SendMessageW(hwnd, WM_SETFONT, (WPARAM) hMessageFont, TRUE);
-	(*idoff)++;
-	return hwnd;
-}
-
 #define swtpszSubAppName 0
 #define swtpszSubIdList 1
 #define stylesStyles 0
@@ -26,6 +10,7 @@ static HWND mklabel(const WCHAR *text, HWND parent, int *idoff)
 // TODO find a sensible layout for the colon or switch to a pointer
 Common::Common(HWND parent, int idoff) :
 	version(parent),
+	unicode(parent),
 	setWindowTheme(parent),
 	styles(parent)
 {
@@ -34,9 +19,9 @@ Common::Common(HWND parent, int idoff) :
 	this->version.Add(L"comctl32.dll Version");
 	idoff = this->version.ID();
 
-	this->labelUnicode = mklabel(L"Unicode", parent, &idoff);
-	this->iconUnicode = newCheckmark(parent, (HMENU) idoff);
-	idoff++;
+	this->unicode.SetID(idoff);
+	this->unicode.AddCheckmark(L"Unicode");
+	idoff = this->unicode.ID();
 
 	this->setWindowTheme.SetID(idoff);
 	this->setWindowTheme.SetMinEditWidth(50);
@@ -56,7 +41,7 @@ Common::Common(HWND parent, int idoff) :
 void Common::Reset(void)
 {
 	this->version.SetText(0, L"N/A");
-	setCheckmarkIcon(this->iconUnicode, hIconUnknown);
+	this->unicode.SetCheckmark(0, hIconUnknown);
 	this->setWindowTheme.SetText(swtpszSubAppName, L"N/A");
 	this->setWindowTheme.SetText(swtpszSubIdList, L"N/A");
 	this->styles.SetText(stylesStyles, L"N/A");
@@ -156,7 +141,7 @@ void Common::Reflect(HWND hwnd, Process *p)
 		iconToUse = hIconNo;
 		if (SendMessageW(hwnd, CCM_GETUNICODEFORMAT, 0, 0) != 0)
 			iconToUse = hIconYes;
-		setCheckmarkIcon(this->iconUnicode, iconToUse);
+		this->unicode.SetCheckmark(0, iconToUse);
 
 		switch (wc) {
 		case DESIREDTOOLBAR:
@@ -186,8 +171,7 @@ void Common::Reflect(HWND hwnd, Process *p)
 SIZE Common::MinimumSize(Layouter *d)
 {
 	SIZE ret;
-	SIZE checkSize;
-	SIZE otherSize;
+	SIZE csize;
 
 	ret.cx = 0;
 	ret.cy = 0;
@@ -195,25 +179,21 @@ SIZE Common::MinimumSize(Layouter *d)
 	ret = this->version.MinimumSize(d);
 
 	ret.cx += d->PaddingX();
-	ret.cx += d->TextWidth(this->labelUnicode) + d->PaddingX();
-	checkSize = checkmarkSize(this->iconUnicode);
-	ret.cx += checkSize.cx;
-	if (ret.cy < checkSize.cy)
-		ret.cy = checkSize.cy;
-	ret.cx += d->PaddingX();
+	csize = this->unicode.MinimumSize(d);
+	ret.cx += csize.cx;
+	if (ret.cy < csize.cy)
+		ret.cy = csize.cy;
 
-	otherSize = this->setWindowTheme.MinimumSize(d);
-	ret.cx += otherSize.cx;
-	if (ret.cy < otherSize.cy)
-		ret.cy = otherSize.cy;
+	csize = this->setWindowTheme.MinimumSize(d);
+	ret.cx += csize.cx;
+	if (ret.cy < csize.cy)
+		ret.cy = csize.cy;
 
-	// TODO don't assume the label's bottom will be above the edit's bottom
 	ret.cy += d->PaddingY();
-	// TODO merge this variable somehow
-	otherSize = this->styles.MinimumSize(d);
-	if (ret.cx < otherSize.cx)
-		ret.cx = otherSize.cx;
-	ret.cy += otherSize.cy;
+	csize = this->styles.MinimumSize(d);
+	if (ret.cx < csize.cx)
+		ret.cx = csize.cx;
+	ret.cy += csize.cy;
 
 	return ret;
 }
@@ -231,7 +211,7 @@ void Common::Relayout(RECT *fill, Layouter *d)
 	int centerWidth;
 	int cury;
 
-	checkSize = checkmarkSize(this->iconUnicode);
+	checkSize = this->unicode.MinimumSize(d);
 	otherSize = this->setWindowTheme.MinimumSize(d);
 	height = otherSize.cy;
 	if (height < checkSize.cy) {
@@ -264,26 +244,12 @@ void Common::Relayout(RECT *fill, Layouter *d)
 	// now lay out the center
 	// we'll center it relative to the remaining space, not to the entire width of the details area
 	centerWidth = d->PaddingX();
-	centerWidth += d->TextWidth(this->labelUnicode) + d->PaddingX();
 	centerWidth += checkSize.cx;
 	curx = ((curx - oldx) - centerWidth) / 2;
 	curx += oldx + d->PaddingX();
-	dwp = DeferWindowPos(dwp,
-		// TODO reduce redundancy
-		this->labelUnicode, NULL,
+	dwp = this->unicode.Relayout(dwp,
 		curx, fill->top + yLabel,
-		d->TextWidth(this->labelUnicode), d->LabelHeight(),
-		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
-	if (dwp == NULL)
-		panic(L"error moving Unicode label: %I32d", GetLastError());
-	curx += d->TextWidth(this->labelUnicode) + d->PaddingX();
-	dwp = DeferWindowPos(dwp,
-		this->iconUnicode, NULL,
-		curx, fill->top + yIcon,
-		0, 0,
-		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOSIZE | SWP_NOZORDER);
-	if (dwp == NULL)
-		panic(L"error moving Unicode icon: %I32d", GetLastError());
+		d);
 
 	cury = fill->top + height + d->PaddingY();
 	dwp = this->styles.RelayoutWidth(dwp,
