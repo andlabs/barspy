@@ -41,6 +41,7 @@ Common::Common(HWND parent, int idoff) :
 	this->setWindowTheme.SetID(idoff);
 	this->setWindowTheme.SetMinEditWidth(50);
 	this->setWindowTheme.SetPadded(false);
+	this->setWindowTheme.SetHorizontal(true);
 	this->setWindowTheme.Add(L"SetWindowTheme(");
 	this->setWindowTheme.Add(L", ");
 	this->setWindowTheme.AddTrailingLabel(L")");

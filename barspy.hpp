@@ -71,6 +71,7 @@ class Form {
 	int id;
 	int minEditWidth;
 	bool padded;
+	bool horizontal;
 	std::vector<HWND> labels;
 	std::vector<HWND> edits;
 	void padding(Layouter *dparent, LONG *x, LONG *y);
@@ -81,6 +82,7 @@ public:
 	void SetID(int id);
 	void SetMinEditWidth(int editMinWidth);
 	void SetPadded(bool padded);
+	void SetHorizontal(bool horizontal);
 	void Add(const WCHAR *label);
 	void AddTrailingLabel(const WCHAR *label);
 	void SetText(int id, const WCHAR *text);

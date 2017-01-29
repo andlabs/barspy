@@ -143,12 +143,15 @@ LONG longestTextWidth(HWND hwnd, ...)
 	return longestTextWidth(hwnds);
 }
 
+// TODO padded + trailing + horizontal was for a specific control; see if we can get away with splitting Form apart or if that would duplicate too much code
+
 Form::Form(HWND parent, int id, int minEditWidth)
 {
 	this->parent = parent;
 	this->id = id;
 	this->minEditWidth = minEditWidth;
 	this->padded = true;
+	this->horizontal = false;
 	if (this->labels.capacity() < 16)
 		this->labels.reserve(16);
 	if (this->edits.capacity() < 16)
@@ -173,6 +176,11 @@ void Form::SetMinEditWidth(int minEditWidth)
 void Form::SetPadded(bool padded)
 {
 	this->padded = padded;
+}
+
+void Form::SetHorizontal(bool horizontal)
+{
+	this->horizontal = horizontal;
 }
 
 void Form::Add(const WCHAR *label)
@@ -226,7 +234,6 @@ void Form::padding(Layouter *dparent, LONG *x, LONG *y)
 	*y = dparent->PaddingY();
 }
 
-// TODO allow optional horizontal arrangement
 SIZE Form::MinimumSize(Layouter *dparent)
 {
 	SIZE s;
@@ -234,11 +241,18 @@ SIZE Form::MinimumSize(Layouter *dparent)
 	LONG xPadding, yPadding;
 
 	this->padding(dparent, &xPadding, &yPadding);
-	minLabelWidth = longestTextWidth(this->labels);
-	s.cx = minLabelWidth + xPadding + this->minEditWidth;
 	// TODO make sure label height + offset is always < edit height
 	// this intuitively seems to be so
-	s.cy = (LONG) (Layouter(this->edits[0]).EditHeight() * this->labels.size());
+	s.cy = Layouter(this->edits[0]).EditHeight();
+	if (this->horizontal) {
+		s.cx = (LONG) ((this->minEditWidth + xPadding) * this->edits.size());
+		for (auto hwnd : this->labels)
+			s.cx += Layouter(hwnd).TextWidth();
+		return s;
+	}
+	minLabelWidth = longestTextWidth(this->labels);
+	s.cx = minLabelWidth + xPadding + this->minEditWidth;
+	s.cy *= this->labels.size();
 	s.cy += (LONG) (yPadding * (this->labels.size() - 1));
 	return s;
 }
@@ -254,6 +268,7 @@ HDWP Form::relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool wi
 	bool hasTrailingLabel;
 
 	this->padding(dparent, &xPadding, &yPadding);
+	// TODO only set this if vertical
 	labelwid = longestTextWidth(this->labels);
 	d = new Layouter(this->labels[0]);
 	labelht = d->LabelHeight();
@@ -270,6 +285,8 @@ HDWP Form::relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool wi
 	n = this->labels.size();
 	hasTrailingLabel = n != this->edits.size();
 	for (i = 0; i < n; i++) {
+		if (this->horizontal)
+			labelwid = Layouter(this->labels[i]).TextWidth();
 		dwp = deferWindowPos(dwp, this->labels[i],
 			x, y + yLine,
 			labelwid, labelht,
@@ -281,7 +298,10 @@ HDWP Form::relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool wi
 			editwid, editht,
 			0);
 		// TODO don't assume edits are always taller than labels? see above
-		y += editht + yPadding;
+		if (this->horizontal)
+			x += labelwid + xPadding + editwid + xPadding;
+		else
+			y += editht + yPadding;
 	}
 	return dwp;
 }
