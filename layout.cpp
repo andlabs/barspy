@@ -143,6 +143,7 @@ LONG longestTextWidth(HWND hwnd, ...)
 	return longestTextWidth(hwnds);
 }
 
+// TODO allow icons
 class Form {
 	HWND parent;
 	int id;
@@ -220,6 +221,38 @@ SIZE Form::MinimumSize(LONG minEditWidth, Layouter *dparent)
 
 HDWP Form::relayout(HDWP dwp, LONG x, LONG y, LONG width, bool widthIsEditOnly, Layouter *dparent)
 {
+	LONG labelWidth, labelHeight;
+	LONG editWidth, editHeight;
+	LONG xPadding, yPadding;
+	LONG yLine;
+	Layouter *d;
+	size_t i, n;
+
+	xPadding = dparent->PaddingX();
+	yPadding = dparent->PaddingY();
+	labelWidth = longestTextWidths(this->labels);
+	d = new Layouter(this->labels[0]);
+	labelHeight = d->LabelHeight();
+	yLine = dparent->LabelYForSiblingY(0, d);
+	delete d;
+	editWidth = width;
+	if (!widthIsEditOnly)
+		editWidth -= labelWidth - xPadding;
+
+	n = this->labels.size();
+	for (i = 0; i < n; i++) {
+		dwp = deferWindowPos(dwp, this->labels[i],
+			x, y + yLine,
+			labelWidth, labelHeight,
+			0);
+		dwp = deferWindowPos(dwp, this->edits[i],
+			x + labelWidth + xPadding, y,
+			editWidth, editHeight,
+			0);
+		// TODO don't assume edits are always taller than labels? see above
+		y += editHeight + yPadding;
+	}
+	return dwp;
 }
 
 HDWP Form::Relayout(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent)
