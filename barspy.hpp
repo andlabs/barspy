@@ -113,9 +113,7 @@ extern Process *processFromHWND(HWND hwnd);
 
 // common.cpp
 class Common {
-	HWND labelVersion;
-	HWND editVersion;
-	int editVersionWidth;
+	Form version;
 
 	HWND labelUnicode;
 	HWND iconUnicode;

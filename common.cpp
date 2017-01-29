@@ -40,11 +40,11 @@ static HWND mkedit(int width, HWND parent, int *idoff)
 // TODO rename idoff to itemid
 // TODO find a sensible layout for the colon or switch to a pointer
 Common::Common(HWND parent, int idoff) :
+	version(parent),
 	styles(parent)
 {
-	this->labelVersion = mklabel(L"comctl32.dll Version", parent, &idoff);
-	this->editVersionWidth = 35;
-	this->editVersion = mkedit(this->editVersionWidth, parent, &idoff);
+	this->version.SetMinEditWidth(35);
+	this->version.Add(L"comctl32.dll Version");
 
 	this->labelUnicode = mklabel(L"Unicode", parent, &idoff);
 	this->iconUnicode = newCheckmark(parent, (HMENU) idoff);
@@ -67,8 +67,7 @@ Common::Common(HWND parent, int idoff) :
 
 void Common::Reset(void)
 {
-	if (SetWindowTextW(this->editVersion, L"N/A") == 0)
-		panic(L"error resetting version text: %I32d", GetLastError());
+	this->version.SetText(0, L"N/A");
 	setCheckmarkIcon(this->iconUnicode, hIconUnknown);
 	if (SetWindowTextW(this->editSWTpszSubAppName, L"N/A") == 0)
 		panic(L"error resetting pszSubAppName text: %I32d", GetLastError());
@@ -165,8 +164,7 @@ void Common::Reflect(HWND hwnd, Process *p)
 		std::wstring s;
 
 		dgv = getDLLVersion(hwnd, p);
-		if (SetWindowTextW(this->editVersion, dgv) == 0)
-			panic(L"error setting version text: %I32d", GetLastError());
+		this->version.SetText(0, dgv);
 		delete[] dgv;
 
 		iconToUse = hIconNo;
@@ -206,23 +204,12 @@ SIZE Common::MinimumSize(Layouter *dparent)
 	SIZE ret;
 	Layouter *d;
 	SIZE checkSize;
-	LONG editHeight;
 	SIZE otherSize;
 
 	ret.cx = 0;
 	ret.cy = 0;
 
-	d = new Layouter(this->labelVersion);
-	ret.cx += d->TextWidth() + dparent->PaddingX();
-	ret.cy = dparent->LabelYForSiblingY(0, d) + d->LabelHeight();
-	delete d;
-
-	d = new Layouter(this->editVersion);
-	ret.cx += this->editVersionWidth;
-	editHeight = d->EditHeight();
-	if (ret.cy < editHeight)
-		ret.cy = editHeight;
-	delete d;
+	ret = this->version.MinimumSize(dparent);
 
 	ret.cx += dparent->PaddingX();
 	d = new Layouter(this->labelUnicode);
@@ -273,9 +260,9 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 	checkSize = checkmarkSize(this->iconUnicode);
 
 	// TODO what if the label height is taller than the edit height?
-	dlabel = new Layouter(this->labelVersion);
+	dlabel = new Layouter(this->labelSetWindowTheme);
 	height = dparent->LabelYForSiblingY(0, dlabel) + dlabel->LabelHeight();
-	dedit = new Layouter(this->editVersion);
+	dedit = new Layouter(this->editSWTpszSubAppName);
 	if (height < dedit->EditHeight())
 		height = dedit->EditHeight();
 	if (height < checkSize.cy) {
@@ -294,22 +281,10 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 	if (dwp == NULL)
 		panic(L"BeginDeferWindowProc() failed: %I32d\n", GetLastError());
 
-	// okay, we already have the version label and edit; do them first
-	dwp = DeferWindowPos(dwp,
-		this->labelVersion, NULL,
-		fill->left, fill->top + yLabel,
-		dlabel->TextWidth(), dlabel->LabelHeight(),
-		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
-	if (dwp == NULL)
-		panic(L"error rearranging version label: %I32d", GetLastError());
-	dwp = DeferWindowPos(dwp,
-		this->editVersion, NULL,
-		fill->left + dlabel->TextWidth() + dparent->PaddingX(), fill->top + yEdit,
-		this->editVersionWidth, dedit->EditHeight(),
-		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
-	if (dwp == NULL)
-		panic(L"error rearranging version edit: %I32d", GetLastError());
-	oldx = fill->left + dlabel->TextWidth() + dparent->PaddingX() + this->editVersionWidth;
+	dwp = this->version.Relayout(dwp,
+		fill->left, fill->top,
+		dparent);
+	oldx = fill->left + this->version.MinimumSize(dparent).cx;
 
 	delete dedit;
 	delete dlabel;
