@@ -17,23 +17,8 @@ static HWND mklabel(const WCHAR *text, HWND parent, int *idoff)
 	return hwnd;
 }
 
-static HWND mkedit(int width, HWND parent, int *idoff)
-{
-	HWND hwnd;
-
-	hwnd = CreateWindowExW(WS_EX_CLIENTEDGE,
-		L"EDIT", L"",
-		// TODO remove READONLY if this ever becomes generic
-		WS_CHILD | WS_VISIBLE | ES_AUTOHSCROLL | ES_LEFT | ES_NOHIDESEL | ES_READONLY,
-		0, 0, width, 100,
-		parent, (HMENU) (*idoff), hInstance, NULL);
-	if (hwnd == NULL)
-		panic(L"error creating edit for common properties view: %I32d", GetLastError());
-	SendMessageW(hwnd, WM_SETFONT, (WPARAM) hMessageFont, TRUE);
-	(*idoff)++;
-	return hwnd;
-}
-
+#define swtpszSubAppName 0
+#define swtpszSubIdList 1
 #define stylesStyles 0
 #define stylesExStyles 1
 
@@ -41,21 +26,23 @@ static HWND mkedit(int width, HWND parent, int *idoff)
 // TODO find a sensible layout for the colon or switch to a pointer
 Common::Common(HWND parent, int idoff) :
 	version(parent),
+	setWindowTheme(parent),
 	styles(parent)
 {
+	this->version.SetID(idoff);
 	this->version.SetMinEditWidth(35);
 	this->version.Add(L"comctl32.dll Version");
+	idoff = this->version.ID();
 
 	this->labelUnicode = mklabel(L"Unicode", parent, &idoff);
 	this->iconUnicode = newCheckmark(parent, (HMENU) idoff);
 	idoff++;
 
-	this->labelSetWindowTheme = mklabel(L"SetWindowTheme(", parent, &idoff);
-	this->editSWTpszSubAppNameWidth = 50;
-	this->editSWTpszSubAppName = mkedit(this->editSWTpszSubAppNameWidth, parent, &idoff);
-	this->labelSWTComma = mklabel(L", ", parent, &idoff);
-	this->editSWTpszSubIdListWidth = 50;
-	this->editSWTpszSubIdList = mkedit(this->editSWTpszSubIdListWidth, parent, &idoff);
+	this->setWindowTheme.SetID(idoff);
+	this->setWindowTheme.SetMinEditWidth(50);
+	this->setWindowTheme.Add(L"SetWindowTheme(");
+	this->setWindowTheme.Add(L", ");
+	idoff = this->setWindowTheme.ID();
 	this->labelSWTRightParen = mklabel(L")", parent, &idoff);
 
 	this->styles.SetMinEditWidth(100);
@@ -69,10 +56,8 @@ void Common::Reset(void)
 {
 	this->version.SetText(0, L"N/A");
 	setCheckmarkIcon(this->iconUnicode, hIconUnknown);
-	if (SetWindowTextW(this->editSWTpszSubAppName, L"N/A") == 0)
-		panic(L"error resetting pszSubAppName text: %I32d", GetLastError());
-	if (SetWindowTextW(this->editSWTpszSubIdList, L"N/A") == 0)
-		panic(L"error resetting pszSubIdList text: %I32d", GetLastError());
+	this->setWindowTheme.SetText(swtpszSubAppName, L"N/A");
+	this->setWindowTheme.SetText(swtpszSubIdList, L"N/A");
 	this->styles.SetText(stylesStyles, L"N/A");
 	this->styles.SetText(stylesExStyles, L"N/A");
 }
@@ -191,10 +176,8 @@ void Common::Reflect(HWND hwnd, Process *p)
 		pszSubAppName = nullCopy();
 	if (pszSubIdList == NULL)
 		pszSubIdList = nullCopy();
-	if (SetWindowTextW(this->editSWTpszSubAppName, pszSubAppName) == 0)
-		panic(L"error setting pszSubAppName text: %I32d", GetLastError());
-	if (SetWindowTextW(this->editSWTpszSubIdList, pszSubIdList) == 0)
-		panic(L"error setting pszSubIdList text: %I32d", GetLastError());
+	this->setWindowTheme.SetText(swtpszSubAppName, pszSubAppName);
+	this->setWindowTheme.SetText(swtpszSubIdList, pszSubIdList);
 	delete[] pszSubIdList;
 	delete[] pszSubAppName;
 }
@@ -221,14 +204,7 @@ SIZE Common::MinimumSize(Layouter *dparent)
 		ret.cy = checkSize.cy;
 	ret.cx += dparent->PaddingX();
 
-	d = new Layouter(this->labelSetWindowTheme);
-	ret.cx += d->TextWidth();
-	delete d;
-	ret.cx += this->editSWTpszSubAppNameWidth;
-	d = new Layouter(this->labelSWTComma);
-	ret.cx += d->TextWidth();
-	delete d;
-	ret.cx += this->editSWTpszSubIdListWidth;
+	ret.cx += this->setWindowTheme.MinimumSize(dparent).cx;
 	d = new Layouter(this->labelSWTRightParen);
 	ret.cx += d->TextWidth();
 	delete d;
@@ -248,6 +224,7 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 {
 	Layouter *d, *dlabel, *dedit;
 	SIZE checkSize;
+	SIZE otherSize;			// TODO clean this up
 	int height;
 	int yLabel = 0;
 	int yEdit = 0;
@@ -258,24 +235,19 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 	int cury;
 
 	checkSize = checkmarkSize(this->iconUnicode);
-
-	// TODO what if the label height is taller than the edit height?
-	dlabel = new Layouter(this->labelSetWindowTheme);
-	height = dparent->LabelYForSiblingY(0, dlabel) + dlabel->LabelHeight();
-	dedit = new Layouter(this->editSWTpszSubAppName);
-	if (height < dedit->EditHeight())
-		height = dedit->EditHeight();
+	otherSize = this->setWindowTheme.MinimumSize(dparent);
+	height = otherSize.cy;
 	if (height < checkSize.cy) {
 		height = checkSize.cy;
 		// icon is largest; make it 0 and vertically center edit
 		yIcon = 0;
-		yEdit = (height - dedit->EditHeight()) / 2;
+		yEdit = (height - dparent/*TODO this is wrong*/->EditHeight()) / 2;
 	} else {
 		// edit is largest; make it 0 and vertically center icon
 		yEdit = 0;
 		yIcon = (height - checkSize.cy) / 2;
 	}
-	yLabel = dparent->LabelYForSiblingY(yEdit, dlabel);
+	yLabel = dparent->LabelYForSiblingY(yEdit, dparent/*TODO this is wrong*/);
 
 	dwp = BeginDeferWindowPos(10);
 	if (dwp == NULL)
@@ -285,9 +257,6 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 		fill->left, fill->top,
 		dparent);
 	oldx = fill->left + this->version.MinimumSize(dparent).cx;
-
-	delete dedit;
-	delete dlabel;
 
 	// now rearrange the right half
 	d = new Layouter(this->labelSWTRightParen);
@@ -300,46 +269,10 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 	if (dwp == NULL)
 		panic(L"error moving right parentheses label: %I32d", GetLastError());
 	delete d;
-	d = new Layouter(this->editSWTpszSubIdList);
-	curx -= this->editSWTpszSubIdListWidth;
-	dwp = DeferWindowPos(dwp,
-		this->editSWTpszSubIdList, NULL,
-		curx, fill->top + yEdit,
-		this->editSWTpszSubIdListWidth, d->EditHeight(),
-		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
-	if (dwp == NULL)
-		panic(L"error moving pszSubIdList edit: %I32d", GetLastError());
-	delete d;
-	d = new Layouter(this->labelSWTComma);
-	curx -= d->TextWidth();
-	dwp = DeferWindowPos(dwp,
-		this->labelSWTComma, NULL,
-		curx, fill->top + yLabel,
-		d->TextWidth(), d->LabelHeight(),
-		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
-	if (dwp == NULL)
-		panic(L"error moving comma label: %I32d", GetLastError());
-	delete d;
-	d = new Layouter(this->editSWTpszSubAppName);
-	curx -= this->editSWTpszSubAppNameWidth;
-	dwp = DeferWindowPos(dwp,
-		this->editSWTpszSubAppName, NULL,
-		curx, fill->top + yEdit,
-		this->editSWTpszSubAppNameWidth, d->EditHeight(),
-		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
-	if (dwp == NULL)
-		panic(L"error moving pszSubIdList edit: %I32d", GetLastError());
-	delete d;
-	d = new Layouter(this->labelSetWindowTheme);
-	curx -= d->TextWidth();
-	dwp = DeferWindowPos(dwp,
-		this->labelSetWindowTheme, NULL,
-		curx, fill->top + yLabel,
-		d->TextWidth(), d->LabelHeight(),
-		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
-	if (dwp == NULL)
-		panic(L"error moving SetWindowTheme() label: %I32d", GetLastError());
-	delete d;
+	curx -= otherSize.cx;
+	dwp = this->setWindowTheme.Relayout(dwp,
+		curx, fill->top,
+		dparent);
 
 	// now lay out the center
 	// we'll center it relative to the remaining space, not to the entire width of the details area

@@ -118,12 +118,7 @@ class Common {
 	HWND labelUnicode;
 	HWND iconUnicode;
 
-	HWND labelSetWindowTheme;
-	HWND editSWTpszSubAppName;
-	int editSWTpszSubAppNameWidth;
-	HWND labelSWTComma;
-	HWND editSWTpszSubIdList;
-	int editSWTpszSubIdListWidth;
+	Form setWindowTheme;
 	HWND labelSWTRightParen;
 
 	Form styles;
