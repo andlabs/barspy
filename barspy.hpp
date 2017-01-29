@@ -71,7 +71,6 @@ class Form {
 	int id;
 	int minEditWidth;
 	bool padded;
-	bool horizontal;
 	std::vector<HWND> labels;
 	std::vector<HWND> edits;
 	void padding(Layouter *dparent, LONG *x, LONG *y);
@@ -82,14 +81,32 @@ public:
 	void SetID(int id);
 	void SetMinEditWidth(int editMinWidth);
 	void SetPadded(bool padded);
-	void SetHorizontal(bool horizontal);
 	void Add(const WCHAR *label);
-	void AddTrailingLabel(const WCHAR *label);
 	void SetText(int id, const WCHAR *text);
 	SIZE MinimumSize(Layouter *dparent);
 	HDWP Relayout(HDWP dwp, LONG x, LONG y, Layouter *dparent);
 	HDWP RelayoutWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent);
 	HDWP RelayoutEditWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent);
+};
+class Chain {
+	HWND parent;
+	int id;
+	int minEditWidth;
+	bool padded;
+	std::vector<HWND> labels;
+	std::vector<HWND> edits;
+	void padding(Layouter *dparent, LONG *x, LONG *y);
+public:
+	Chain(HWND parent, int id = 100, int minEditWidth = 0);
+	int ID(void);
+	void SetID(int id);
+	void SetMinEditWidth(int editMinWidth);
+	void SetPadded(bool padded);
+	void Add(const WCHAR *label);
+	void AddTrailingLabel(const WCHAR *label);
+	void SetText(int id, const WCHAR *text);
+	SIZE MinimumSize(Layouter *dparent);
+	HDWP Relayout(HDWP dwp, LONG x, LONG y, Layouter *dparent);
 };
 
 // process.cpp
@@ -124,7 +141,7 @@ class Common {
 	HWND labelUnicode;
 	HWND iconUnicode;
 
-	Form setWindowTheme;
+	Chain setWindowTheme;
 
 	Form styles;
 public:
