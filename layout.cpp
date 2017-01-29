@@ -175,21 +175,11 @@ void Form::SetPadded(bool padded)
 	this->padded = padded;
 }
 
-void Form::Add(const WCHAR *msg)
+void Form::Add(const WCHAR *label)
 {
 	HWND hwnd;
 
-	hwnd = CreateWindowExW(0,
-		L"STATIC", msg,
-		WS_CHILD | WS_VISIBLE | SS_LEFTNOWORDWRAP | SS_NOPREFIX,
-		0, 0, 100, 100,
-		this->parent, (HMENU) (this->id), hInstance, NULL);
-	if (hwnd == NULL)
-		panic(L"error creating label: %I32d", GetLastError());
-	SendMessageW(hwnd, WM_SETFONT, (WPARAM) hMessageFont, TRUE);
-	this->labels.push_back(hwnd);
-	this->id++;
-
+	this->AddTrailingLabel(label);
 	hwnd = CreateWindowExW(WS_EX_CLIENTEDGE,
 		L"EDIT", L"",
 		// TODO remove READONLY if this ever becomes an editor instead of just a viewer
@@ -200,6 +190,22 @@ void Form::Add(const WCHAR *msg)
 		panic(L"error creating edit: %I32d", GetLastError());
 	SendMessageW(hwnd, WM_SETFONT, (WPARAM) hMessageFont, TRUE);
 	this->edits.push_back(hwnd);
+	this->id++;
+}
+
+void Form::AddTrailingLabel(const WCHAR *label)
+{
+	HWND hwnd;
+
+	hwnd = CreateWindowExW(0,
+		L"STATIC", label,
+		WS_CHILD | WS_VISIBLE | SS_LEFTNOWORDWRAP | SS_NOPREFIX,
+		0, 0, 100, 100,
+		this->parent, (HMENU) (this->id), hInstance, NULL);
+	if (hwnd == NULL)
+		panic(L"error creating label: %I32d", GetLastError());
+	SendMessageW(hwnd, WM_SETFONT, (WPARAM) hMessageFont, TRUE);
+	this->labels.push_back(hwnd);
 	this->id++;
 }
 
@@ -232,8 +238,8 @@ SIZE Form::MinimumSize(Layouter *dparent)
 	s.cx = minLabelWidth + xPadding + this->minEditWidth;
 	// TODO make sure label height + offset is always < edit height
 	// this intuitively seems to be so
-	s.cy = (LONG) (Layouter(this->edits[0]).EditHeight() * this->edits.size());
-	s.cy += (LONG) (yPadding * (this->edits.size() - 1));
+	s.cy = (LONG) (Layouter(this->edits[0]).EditHeight() * this->labels.size());
+	s.cy += (LONG) (yPadding * (this->labels.size() - 1));
 	return s;
 }
 
@@ -245,6 +251,7 @@ HDWP Form::relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool wi
 	LONG yLine;
 	Layouter *d;
 	size_t i, n;
+	bool hasTrailingLabel;
 
 	this->padding(dparent, &xPadding, &yPadding);
 	labelwid = longestTextWidth(this->labels);
@@ -261,11 +268,14 @@ HDWP Form::relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool wi
 	editht = Layouter(this->edits[0]).EditHeight();
 
 	n = this->labels.size();
+	hasTrailingLabel = n != this->edits.size();
 	for (i = 0; i < n; i++) {
 		dwp = deferWindowPos(dwp, this->labels[i],
 			x, y + yLine,
 			labelwid, labelht,
 			0);
+		if (i == (n - 1) && hasTrailingLabel)
+			break;
 		dwp = deferWindowPos(dwp, this->edits[i],
 			x + labelwid + xPadding, y,
 			editwid, editht,

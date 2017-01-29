@@ -81,7 +81,8 @@ public:
 	void SetID(int id);
 	void SetMinEditWidth(int editMinWidth);
 	void SetPadded(bool padded);
-	void Add(const WCHAR *msg);
+	void Add(const WCHAR *label);
+	void AddTrailingLabel(const WCHAR *label);
 	void SetText(int id, const WCHAR *text);
 	SIZE MinimumSize(Layouter *dparent);
 	HDWP Relayout(HDWP dwp, LONG x, LONG y, Layouter *dparent);
@@ -122,7 +123,6 @@ class Common {
 	HWND iconUnicode;
 
 	Form setWindowTheme;
-	HWND labelSWTRightParen;
 
 	Form styles;
 public:

@@ -43,8 +43,8 @@ Common::Common(HWND parent, int idoff) :
 	this->setWindowTheme.SetPadded(false);
 	this->setWindowTheme.Add(L"SetWindowTheme(");
 	this->setWindowTheme.Add(L", ");
+	this->setWindowTheme.AddTrailingLabel(L")");
 	idoff = this->setWindowTheme.ID();
-	this->labelSWTRightParen = mklabel(L")", parent, &idoff);
 
 	this->styles.SetMinEditWidth(100);
 	this->styles.SetID(idoff);
@@ -209,9 +209,6 @@ SIZE Common::MinimumSize(Layouter *dparent)
 	ret.cx += otherSize.cx;
 	if (ret.cy < otherSize.cy)
 		ret.cy = otherSize.cy;
-	d = new Layouter(this->labelSWTRightParen);
-	ret.cx += d->TextWidth();
-	delete d;
 
 	// TODO don't assume the label's bottom will be above the edit's bottom
 	ret.cy += dparent->PaddingY();
@@ -263,17 +260,7 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 	oldx = fill->left + this->version.MinimumSize(dparent).cx;
 
 	// now rearrange the right half
-	d = new Layouter(this->labelSWTRightParen);
-	curx = fill->right - d->TextWidth();
-	dwp = DeferWindowPos(dwp,
-		this->labelSWTRightParen, NULL,
-		curx, fill->top + yLabel,
-		d->TextWidth(), d->LabelHeight(),
-		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
-	if (dwp == NULL)
-		panic(L"error moving right parentheses label: %I32d", GetLastError());
-	delete d;
-	curx -= otherSize.cx;
+	curx = fill->right - otherSize.cx;
 	dwp = this->setWindowTheme.Relayout(dwp,
 		curx, fill->top,
 		dparent);
