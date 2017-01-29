@@ -244,7 +244,7 @@ void Common::Relayout(RECT *fill, Layouter *d)
 		yEdit = 0;
 		yIcon = (height - checkSize.cy) / 2;
 	}
-	yLabel = d->LabelYForSiblingY(yEdit, d);
+	yLabel = d->LabelYForSiblingY(yEdit);
 
 	dwp = BeginDeferWindowPos(10);
 	if (dwp == NULL)

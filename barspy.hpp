@@ -67,7 +67,7 @@ public:
 	int WindowMarginX(void);
 	int WindowMarginY(void);
 	int EditHeight(void);
-	int LabelYForSiblingY(int siblingY, Layouter *label);
+	int LabelYForSiblingY(int siblingY);
 	int LabelHeight(void);
 };
 extern LONG longestTextWidth(Layouter *d, const std::vector<HWND> &hwnds);

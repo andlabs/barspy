@@ -117,9 +117,9 @@ int Layouter::EditHeight(void)
 #define labelHeight 8
 #define labelYOffset 3
 
-int Layouter::LabelYForSiblingY(int siblingY, Layouter *label)
+int Layouter::LabelYForSiblingY(int siblingY)
 {
-	return siblingY + this->Y(labelYOffset) - label->InternalLeading();
+	return siblingY + this->Y(labelYOffset) - this->InternalLeading();
 }
 
 int Layouter::LabelHeight(void)
@@ -257,7 +257,7 @@ HDWP Form::relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool wi
 	this->padding(d, &xPadding, &yPadding);
 	labelwid = longestTextWidth(d, this->labels);
 	labelht = d->LabelHeight();
-	yLine = d->LabelYForSiblingY(0, d);
+	yLine = d->LabelYForSiblingY(0);
 	editwid = this->minEditWidth;
 	if (useWidth) {
 		editwid = width;
@@ -406,7 +406,7 @@ HDWP Chain::Relayout(HDWP dwp, LONG x, LONG y, Layouter *d)
 
 	this->padding(d, &xPadding, &yPadding);
 	labelht = d->LabelHeight();
-	yLine = d->LabelYForSiblingY(0, d);
+	yLine = d->LabelYForSiblingY(0);
 	editwid = this->minEditWidth;
 	editht = d->EditHeight();
 
