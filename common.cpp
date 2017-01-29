@@ -40,6 +40,7 @@ Common::Common(HWND parent, int idoff) :
 
 	this->setWindowTheme.SetID(idoff);
 	this->setWindowTheme.SetMinEditWidth(50);
+	this->setWindowTheme.SetPadded(false);
 	this->setWindowTheme.Add(L"SetWindowTheme(");
 	this->setWindowTheme.Add(L", ");
 	idoff = this->setWindowTheme.ID();
@@ -204,7 +205,10 @@ SIZE Common::MinimumSize(Layouter *dparent)
 		ret.cy = checkSize.cy;
 	ret.cx += dparent->PaddingX();
 
-	ret.cx += this->setWindowTheme.MinimumSize(dparent).cx;
+	otherSize = this->setWindowTheme.MinimumSize(dparent);
+	ret.cx += otherSize.cx;
+	if (ret.cy < otherSize.cy)
+		ret.cy = otherSize.cy;
 	d = new Layouter(this->labelSWTRightParen);
 	ret.cx += d->TextWidth();
 	delete d;

@@ -70,14 +70,17 @@ class Form {
 	HWND parent;
 	int id;
 	int minEditWidth;
+	bool padded;
 	std::vector<HWND> labels;
 	std::vector<HWND> edits;
+	void padding(Layouter *dparent, LONG *x, LONG *y);
 	HDWP relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool widthIsEditOnly, Layouter *dparent);
 public:
 	Form(HWND parent, int id = 100, int minEditWidth = 0);
 	int ID(void);
 	void SetID(int id);
 	void SetMinEditWidth(int editMinWidth);
+	void SetPadded(bool padded);
 	void Add(const WCHAR *msg);
 	void SetText(int id, const WCHAR *text);
 	SIZE MinimumSize(Layouter *dparent);

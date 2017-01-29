@@ -148,6 +148,7 @@ Form::Form(HWND parent, int id, int minEditWidth)
 	this->parent = parent;
 	this->id = id;
 	this->minEditWidth = minEditWidth;
+	this->padded = true;
 	if (this->labels.capacity() < 16)
 		this->labels.reserve(16);
 	if (this->edits.capacity() < 16)
@@ -167,6 +168,11 @@ void Form::SetID(int id)
 void Form::SetMinEditWidth(int minEditWidth)
 {
 	this->minEditWidth = minEditWidth;
+}
+
+void Form::SetPadded(bool padded)
+{
+	this->padded = padded;
 }
 
 void Form::Add(const WCHAR *msg)
@@ -203,19 +209,31 @@ void Form::SetText(int id, const WCHAR *text)
 		panic(L"error setting form edit text: %I32d", GetLastError());
 }
 
+void Form::padding(Layouter *dparent, LONG *x, LONG *y)
+{
+	if (!this->padded) {
+		*x = 0;
+		*y = 0;
+		return;
+	}
+	*x = dparent->PaddingX();
+	*y = dparent->PaddingY();
+}
+
 // TODO allow optional horizontal arrangement
 SIZE Form::MinimumSize(Layouter *dparent)
 {
 	SIZE s;
 	LONG minLabelWidth;
+	LONG xPadding, yPadding;
 
+	this->padding(dparent, &xPadding, &yPadding);
 	minLabelWidth = longestTextWidth(this->labels);
-	// TODO make padding optional
-	s.cx = minLabelWidth + dparent->PaddingX() + this->minEditWidth;
+	s.cx = minLabelWidth + xPadding + this->minEditWidth;
 	// TODO make sure label height + offset is always < edit height
 	// this intuitively seems to be so
 	s.cy = (LONG) (Layouter(this->edits[0]).EditHeight() * this->edits.size());
-	s.cy += (LONG) (dparent->PaddingY() * (this->edits.size() - 1));
+	s.cy += (LONG) (yPadding * (this->edits.size() - 1));
 	return s;
 }
 
@@ -228,8 +246,7 @@ HDWP Form::relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool wi
 	Layouter *d;
 	size_t i, n;
 
-	xPadding = dparent->PaddingX();
-	yPadding = dparent->PaddingY();
+	this->padding(dparent, &xPadding, &yPadding);
 	labelwid = longestTextWidth(this->labels);
 	d = new Layouter(this->labels[0]);
 	labelht = d->LabelHeight();
