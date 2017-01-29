@@ -1,8 +1,8 @@
 // 26 january 2017
 #include "barspy.hpp"
 
-// TODO this positions coordinates by parents and sizes by selves
-// I forget if I ever asked if the children of windows had to have the same DPI as their parents... but if so, this is wrong
+// create a Layouter at the top level and pass it down for all children
+// this is safe; see http://stackoverflow.com/questions/41917279/do-child-windows-have-the-same-dpi-as-their-parents-in-a-per-monitor-aware-appli
 
 Layouter::Layouter(HWND hwnd)
 {
@@ -210,24 +210,24 @@ void Form::SetText(int id, const WCHAR *text)
 		panic(L"error setting form edit text: %I32d", GetLastError());
 }
 
-void Form::padding(Layouter *dparent, LONG *x, LONG *y)
+void Form::padding(Layouter *d, LONG *x, LONG *y)
 {
 	if (!this->padded) {
 		*x = 0;
 		*y = 0;
 		return;
 	}
-	*x = dparent->PaddingX();
-	*y = dparent->PaddingY();
+	*x = d->PaddingX();
+	*y = d->PaddingY();
 }
 
-SIZE Form::MinimumSize(Layouter *dparent)
+SIZE Form::MinimumSize(Layouter *d)
 {
 	SIZE s;
 	LONG minLabelWidth;
 	LONG xPadding, yPadding;
 
-	this->padding(dparent, &xPadding, &yPadding);
+	this->padding(d, &xPadding, &yPadding);
 	minLabelWidth = longestTextWidth(this->labels);
 	s.cx = minLabelWidth + xPadding + this->minEditWidth;
 	// TODO make sure label height + offset is always < edit height
@@ -237,21 +237,18 @@ SIZE Form::MinimumSize(Layouter *dparent)
 	return s;
 }
 
-HDWP Form::relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool widthIsEditOnly, Layouter *dparent)
+HDWP Form::relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool widthIsEditOnly, Layouter *d)
 {
 	LONG labelwid, labelht;
 	LONG editwid, editht;
 	LONG xPadding, yPadding;
 	LONG yLine;
-	Layouter *d;
 	size_t i, n;
 
-	this->padding(dparent, &xPadding, &yPadding);
+	this->padding(d, &xPadding, &yPadding);
 	labelwid = longestTextWidth(this->labels);
-	d = new Layouter(this->labels[0]);
 	labelht = d->LabelHeight();
-	yLine = dparent->LabelYForSiblingY(0, d);
-	delete d;
+	yLine = d->LabelYForSiblingY(0, d);
 	editwid = this->minEditWidth;
 	if (useWidth) {
 		editwid = width;
@@ -276,19 +273,19 @@ HDWP Form::relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool wi
 	return dwp;
 }
 
-HDWP Form::Relayout(HDWP dwp, LONG x, LONG y, Layouter *dparent)
+HDWP Form::Relayout(HDWP dwp, LONG x, LONG y, Layouter *d)
 {
-	return this->relayout(dwp, x, y, false, 0, false, dparent);
+	return this->relayout(dwp, x, y, false, 0, false, d);
 }
 
-HDWP Form::RelayoutWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent)
+HDWP Form::RelayoutWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *d)
 {
-	return this->relayout(dwp, x, y, true, width, false, dparent);
+	return this->relayout(dwp, x, y, true, width, false, d);
 }
 
-HDWP Form::RelayoutEditWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent)
+HDWP Form::RelayoutEditWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *d)
 {
-	return this->relayout(dwp, x, y, true, width, true, dparent);
+	return this->relayout(dwp, x, y, true, width, true, d);
 }
 
 Chain::Chain(HWND parent, int id, int minEditWidth)
@@ -363,23 +360,23 @@ void Chain::SetText(int id, const WCHAR *text)
 		panic(L"error setting form edit text: %I32d", GetLastError());
 }
 
-void Chain::padding(Layouter *dparent, LONG *x, LONG *y)
+void Chain::padding(Layouter *d, LONG *x, LONG *y)
 {
 	if (!this->padded) {
 		*x = 0;
 		*y = 0;
 		return;
 	}
-	*x = dparent->PaddingX();
-	*y = dparent->PaddingY();
+	*x = d->PaddingX();
+	*y = d->PaddingY();
 }
 
-SIZE Chain::MinimumSize(Layouter *dparent)
+SIZE Chain::MinimumSize(Layouter *d)
 {
 	SIZE s;
 	LONG xPadding, yPadding;
 
-	this->padding(dparent, &xPadding, &yPadding);
+	this->padding(d, &xPadding, &yPadding);
 	s.cx = (LONG) ((this->minEditWidth + xPadding) * this->edits.size());
 	for (auto hwnd : this->labels)
 		s.cx += Layouter(hwnd).TextWidth();
@@ -389,21 +386,18 @@ SIZE Chain::MinimumSize(Layouter *dparent)
 	return s;
 }
 
-HDWP Chain::Relayout(HDWP dwp, LONG x, LONG y, Layouter *dparent)
+HDWP Chain::Relayout(HDWP dwp, LONG x, LONG y, Layouter *d)
 {
 	LONG labelwid, labelht;
 	LONG editwid, editht;
 	LONG xPadding, yPadding;
 	LONG yLine;
-	Layouter *d;
 	size_t i, n;
 	bool hasTrailingLabel;
 
-	this->padding(dparent, &xPadding, &yPadding);
-	d = new Layouter(this->labels[0]);
+	this->padding(d, &xPadding, &yPadding);
 	labelht = d->LabelHeight();
-	yLine = dparent->LabelYForSiblingY(0, d);
-	delete d;
+	yLine = d->LabelYForSiblingY(0, d);
 	editwid = this->minEditWidth;
 	editht = Layouter(this->edits[0]).EditHeight();
 

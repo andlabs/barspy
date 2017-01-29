@@ -183,37 +183,34 @@ void Common::Reflect(HWND hwnd, Process *p)
 	delete[] pszSubAppName;
 }
 
-SIZE Common::MinimumSize(Layouter *dparent)
+SIZE Common::MinimumSize(Layouter *d)
 {
 	SIZE ret;
-	Layouter *d;
 	SIZE checkSize;
 	SIZE otherSize;
 
 	ret.cx = 0;
 	ret.cy = 0;
 
-	ret = this->version.MinimumSize(dparent);
+	ret = this->version.MinimumSize(d);
 
-	ret.cx += dparent->PaddingX();
-	d = new Layouter(this->labelUnicode);
-	ret.cx += d->TextWidth() + dparent->PaddingX();
-	delete d;
+	ret.cx += d->PaddingX();
+	ret.cx += d->TextWidth() + d->PaddingX();
 	checkSize = checkmarkSize(this->iconUnicode);
 	ret.cx += checkSize.cx;
 	if (ret.cy < checkSize.cy)
 		ret.cy = checkSize.cy;
-	ret.cx += dparent->PaddingX();
+	ret.cx += d->PaddingX();
 
-	otherSize = this->setWindowTheme.MinimumSize(dparent);
+	otherSize = this->setWindowTheme.MinimumSize(d);
 	ret.cx += otherSize.cx;
 	if (ret.cy < otherSize.cy)
 		ret.cy = otherSize.cy;
 
 	// TODO don't assume the label's bottom will be above the edit's bottom
-	ret.cy += dparent->PaddingY();
+	ret.cy += d->PaddingY();
 	// TODO merge this variable somehow
-	otherSize = this->styles.MinimumSize(dparent);
+	otherSize = this->styles.MinimumSize(d);
 	if (ret.cx < otherSize.cx)
 		ret.cx = otherSize.cx;
 	ret.cy += otherSize.cy;
@@ -221,9 +218,8 @@ SIZE Common::MinimumSize(Layouter *dparent)
 	return ret;
 }
 
-void Common::Relayout(RECT *fill, Layouter *dparent)
+void Common::Relayout(RECT *fill, Layouter *d)
 {
-	Layouter *d, *dlabel, *dedit;
 	SIZE checkSize;
 	SIZE otherSize;			// TODO clean this up
 	int height;
@@ -236,19 +232,19 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 	int cury;
 
 	checkSize = checkmarkSize(this->iconUnicode);
-	otherSize = this->setWindowTheme.MinimumSize(dparent);
+	otherSize = this->setWindowTheme.MinimumSize(d);
 	height = otherSize.cy;
 	if (height < checkSize.cy) {
 		height = checkSize.cy;
 		// icon is largest; make it 0 and vertically center edit
 		yIcon = 0;
-		yEdit = (height - dparent/*TODO this is wrong*/->EditHeight()) / 2;
+		yEdit = (height - d->EditHeight()) / 2;
 	} else {
 		// edit is largest; make it 0 and vertically center icon
 		yEdit = 0;
 		yIcon = (height - checkSize.cy) / 2;
 	}
-	yLabel = dparent->LabelYForSiblingY(yEdit, dparent/*TODO this is wrong*/);
+	yLabel = d->LabelYForSiblingY(yEdit, d);
 
 	dwp = BeginDeferWindowPos(10);
 	if (dwp == NULL)
@@ -256,32 +252,30 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 
 	dwp = this->version.Relayout(dwp,
 		fill->left, fill->top,
-		dparent);
-	oldx = fill->left + this->version.MinimumSize(dparent).cx;
+		d);
+	oldx = fill->left + this->version.MinimumSize(d).cx;
 
 	// now rearrange the right half
 	curx = fill->right - otherSize.cx;
 	dwp = this->setWindowTheme.Relayout(dwp,
 		curx, fill->top,
-		dparent);
+		d);
 
 	// now lay out the center
 	// we'll center it relative to the remaining space, not to the entire width of the details area
-	centerWidth = dparent->PaddingX();
-	dlabel = new Layouter(this->labelUnicode);
-	centerWidth += dlabel->TextWidth() + dparent->PaddingX();
+	centerWidth = d->PaddingX();
+	centerWidth += d->TextWidth() + d->PaddingX();
 	centerWidth += checkSize.cx;
 	curx = ((curx - oldx) - centerWidth) / 2;
-	curx += oldx + dparent->PaddingX();
+	curx += oldx + d->PaddingX();
 	dwp = DeferWindowPos(dwp,
 		this->labelUnicode, NULL,
 		curx, fill->top + yLabel,
-		dlabel->TextWidth(), dlabel->LabelHeight(),
+		d->TextWidth(), d->LabelHeight(),
 		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
 	if (dwp == NULL)
 		panic(L"error moving Unicode label: %I32d", GetLastError());
-	curx += dlabel->TextWidth() + dparent->PaddingX();
-	delete dlabel;
+	curx += d->TextWidth() + d->PaddingX();
 	dwp = DeferWindowPos(dwp,
 		this->iconUnicode, NULL,
 		curx, fill->top + yIcon,
@@ -290,11 +284,11 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 	if (dwp == NULL)
 		panic(L"error moving Unicode icon: %I32d", GetLastError());
 
-	cury = fill->top + height + dparent->PaddingY();
+	cury = fill->top + height + d->PaddingY();
 	dwp = this->styles.RelayoutWidth(dwp,
 		fill->left, cury,
 		fill->right - fill->left,
-		dparent);
+		d);
 
 	if (EndDeferWindowPos(dwp) == 0)
 		panic(L"error committing new common section control positions: %I32d", GetLastError());

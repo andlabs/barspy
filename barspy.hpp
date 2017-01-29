@@ -73,8 +73,8 @@ class Form {
 	bool padded;
 	std::vector<HWND> labels;
 	std::vector<HWND> edits;
-	void padding(Layouter *dparent, LONG *x, LONG *y);
-	HDWP relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool widthIsEditOnly, Layouter *dparent);
+	void padding(Layouter *d, LONG *x, LONG *y);
+	HDWP relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool widthIsEditOnly, Layouter *d);
 public:
 	Form(HWND parent, int id = 100, int minEditWidth = 0);
 	int ID(void);
@@ -83,10 +83,10 @@ public:
 	void SetPadded(bool padded);
 	void Add(const WCHAR *label);
 	void SetText(int id, const WCHAR *text);
-	SIZE MinimumSize(Layouter *dparent);
-	HDWP Relayout(HDWP dwp, LONG x, LONG y, Layouter *dparent);
-	HDWP RelayoutWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent);
-	HDWP RelayoutEditWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent);
+	SIZE MinimumSize(Layouter *d);
+	HDWP Relayout(HDWP dwp, LONG x, LONG y, Layouter *d);
+	HDWP RelayoutWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *d);
+	HDWP RelayoutEditWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *d);
 };
 class Chain {
 	HWND parent;
@@ -95,7 +95,7 @@ class Chain {
 	bool padded;
 	std::vector<HWND> labels;
 	std::vector<HWND> edits;
-	void padding(Layouter *dparent, LONG *x, LONG *y);
+	void padding(Layouter *d, LONG *x, LONG *y);
 public:
 	Chain(HWND parent, int id = 100, int minEditWidth = 0);
 	int ID(void);
@@ -105,8 +105,8 @@ public:
 	void Add(const WCHAR *label);
 	void AddTrailingLabel(const WCHAR *label);
 	void SetText(int id, const WCHAR *text);
-	SIZE MinimumSize(Layouter *dparent);
-	HDWP Relayout(HDWP dwp, LONG x, LONG y, Layouter *dparent);
+	SIZE MinimumSize(Layouter *d);
+	HDWP Relayout(HDWP dwp, LONG x, LONG y, Layouter *d);
 };
 
 // process.cpp
@@ -150,8 +150,8 @@ public:
 	void Reset(void);
 	void Reflect(HWND hwnd, Process *p);
 
-	SIZE MinimumSize(Layouter *dparent);
-	void Relayout(RECT *fill, Layouter *dparent);
+	SIZE MinimumSize(Layouter *d);
+	void Relayout(RECT *fill, Layouter *d);
 };
 extern std::wstring drawTextFlagsString(UINT relevant);
 
