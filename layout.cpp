@@ -127,6 +127,46 @@ int Layouter::LabelHeight(void)
 	return this->Y(labelHeight);
 }
 
+// TODO is there a better way to write this?
+void rowYMetrics(struct RowYMetrics *m, Layouter *d, RECT *iconRect)
+{
+	LONG iconHeight;
+
+	m->EditY = 0;
+	m->EditHeight = d->EditHeight();
+	m->LabelY = d->LabelYForSiblingY(m->EditY);
+	m->LabelHeight = d->LabelHeight();
+	if (m->LabelY < 0) {
+		// oops, label starts above the edit
+		// |y| is the amount it starts above
+		m->EditY = -m->LabelY;
+		m->LabelY = 0;
+	}
+	m->TotalHeight = m->LabelY + m->LabelHeight;
+	if (m->TotalHeight < (m->EditY + m->EditHeight))
+		m->TotalHeight = (m->EditY + m->EditHeight);
+
+	iconHeight = 0;
+	if (iconRect != NULL)
+		iconHeight = iconRect->bottom - iconRect->top;
+	if (m->TotalHeight < iconHeight) {
+		// icon is taller; make it the total height and vertically center the edit
+		m->TotalHeight = iconHeight;
+		m->IconY = 0;
+		m->EditY = (m->TotalHeight - m->EditHeight) / 2;
+		// and now we have to recompute LabelY
+		// no need to do anything else though; we accounted for that already (since we know the icon is taller than the total height of the label and edit combined)
+		m->LabelY = d->LabelYForSiblingY(m->EditY);
+	} else
+		// label+edit is taller; vertically center the icon
+		m->IconY = (m->TotalHeight - iconHeight) / 2;
+
+	// and get the Y position to put iconless forms
+	m->LabelEditY = m->LabelY;
+	if (m->LabelEditY < m->EditY)
+		m->LabelEditY = m->EditY;
+}
+
 LONG longestTextWidth(Layouter *d, const std::vector<HWND> &hwnds)
 {
 	LONG current, next;
@@ -230,54 +270,59 @@ void Form::padding(Layouter *d, LONG *x, LONG *y)
 	*y = d->PaddingY();
 }
 
+void Form::RowYMetrics(struct RowYMetrics *m, Layouter *d)
+{
+	rowYMetrics(m, d, NULL);
+}
+
 SIZE Form::MinimumSize(Layouter *d)
 {
 	SIZE s;
 	LONG minLabelWidth;
 	LONG xPadding, yPadding;
+	struct RowYMetrics m;
 
 	this->padding(d, &xPadding, &yPadding);
+
 	minLabelWidth = longestTextWidth(d, this->labels);
 	s.cx = minLabelWidth + xPadding + this->minEditWidth;
-	// TODO make sure label height + offset is always < edit height
-	// this intuitively seems to be so
-	s.cy = (LONG) (d->EditHeight() * this->labels.size());
+
+	this->RowYMetrics(&m, d);
+	s.cy = (LONG) (m.TotalHeight * this->labels.size());
 	s.cy += (LONG) (yPadding * (this->labels.size() - 1));
+
 	return s;
 }
 
 HDWP Form::relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool widthIsEditOnly, Layouter *d)
 {
-	LONG labelwid, labelht;
-	LONG editwid, editht;
+	LONG labelwid;
+	LONG editwid;
 	LONG xPadding, yPadding;
-	LONG yLine;
+	struct RowYMetrics m;
 	size_t i, n;
 
 	this->padding(d, &xPadding, &yPadding);
+	this->RowYMetrics(&m, d);
 	labelwid = longestTextWidth(d, this->labels);
-	labelht = d->LabelHeight();
-	yLine = d->LabelYForSiblingY(0);
 	editwid = this->minEditWidth;
 	if (useWidth) {
 		editwid = width;
 		if (!widthIsEditOnly)
 			editwid -= labelwid + xPadding;
 	}
-	editht = d->EditHeight();
 
 	n = this->labels.size();
 	for (i = 0; i < n; i++) {
 		dwp = deferWindowPos(dwp, this->labels[i],
-			x, y + yLine,
-			labelwid, labelht,
+			x, y + m.LabelY,
+			labelwid, m.LabelHeight,
 			0);
 		dwp = deferWindowPos(dwp, this->edits[i],
-			x + labelwid + xPadding, y,
-			editwid, editht,
+			x + labelwid + xPadding, y + m.EditY,
+			editwid, m.EditHeight,
 			0);
-		// TODO don't assume edits are always taller than labels? see above
-		y += editht + yPadding;
+		y += m.TotalHeight + yPadding;
 	}
 	return dwp;
 }
@@ -380,52 +425,57 @@ void Chain::padding(Layouter *d, LONG *x, LONG *y)
 	*y = d->PaddingY();
 }
 
+void Chain::RowYMetrics(struct RowYMetrics *m, Layouter *d)
+{
+	// there is no icon
+	rowYMetrics(m, d, NULL);
+}
+
 SIZE Chain::MinimumSize(Layouter *d)
 {
 	SIZE s;
 	LONG xPadding, yPadding;
+	struct RowYMetrics m;
 
 	this->padding(d, &xPadding, &yPadding);
+
 	s.cx = (LONG) ((this->minEditWidth + xPadding) * this->edits.size());
 	for (auto hwnd : this->labels)
 		s.cx += d->TextWidth(hwnd);
-	// TODO make sure label height + offset is always < edit height
-	// this intuitively seems to be so
-	s.cy = d->EditHeight();
+
+	this->RowYMetrics(&m, d);
+	s.cy = m.TotalHeight;
 	return s;
 }
 
 HDWP Chain::Relayout(HDWP dwp, LONG x, LONG y, Layouter *d)
 {
-	LONG labelwid, labelht;
-	LONG editwid, editht;
+	LONG labelwid;
+	LONG editwid;
 	LONG xPadding, yPadding;
-	LONG yLine;
+	struct RowYMetrics m;
 	size_t i, n;
 	bool hasTrailingLabel;
 
 	this->padding(d, &xPadding, &yPadding);
-	labelht = d->LabelHeight();
-	yLine = d->LabelYForSiblingY(0);
+	this->RowYMetrics(&m, d);
 	editwid = this->minEditWidth;
-	editht = d->EditHeight();
 
 	n = this->labels.size();
 	hasTrailingLabel = n != this->edits.size();
 	for (i = 0; i < n; i++) {
 		labelwid = d->TextWidth(this->labels[i]);
 		dwp = deferWindowPos(dwp, this->labels[i],
-			x, y + yLine,
-			labelwid, labelht,
+			x, y + m.LabelY,
+			labelwid, m.LabelHeight,
 			0);
-		if (i == (n - 1) && hasTrailingLabel)
+		if (hasTrailingLabel && i == (n - 1))
 			break;
 		x += labelwid + xPadding;
 		dwp = deferWindowPos(dwp, this->edits[i],
-			x, y,
-			editwid, editht,
+			x, y + m.EditY,
+			editwid, m.EditHeight,
 			0);
-		// TODO don't assume edits are always taller than labels? see above
 		x += editwid + xPadding;
 	}
 	return dwp;

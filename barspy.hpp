@@ -70,6 +70,16 @@ public:
 	int LabelYForSiblingY(int siblingY);
 	int LabelHeight(void);
 };
+struct RowYMetrics {
+	LONG TotalHeight;
+	LONG LabelY;
+	LONG LabelHeight;
+	LONG EditY;
+	LONG EditHeight;
+	LONG IconY;
+	LONG LabelEditY;
+};
+extern void rowYMetrics(struct RowYMetrics *m, Layouter *d, RECT *iconRect = NULL);
 extern LONG longestTextWidth(Layouter *d, const std::vector<HWND> &hwnds);
 template<typename... Ts>
 extern LONG longestTextWidth(Layouter *d, HWND first, Ts... hwnds);
@@ -91,6 +101,7 @@ public:
 	void SetPadded(bool padded);
 	void Add(const WCHAR *label);
 	void SetText(int id, const WCHAR *text);
+	void RowYMetrics(struct RowYMetrics *m, Layouter *d);
 	SIZE MinimumSize(Layouter *d);
 	HDWP Relayout(HDWP dwp, LONG x, LONG y, Layouter *d);
 	HDWP RelayoutWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *d);
@@ -113,6 +124,7 @@ public:
 	void Add(const WCHAR *label);
 	void AddTrailingLabel(const WCHAR *label);
 	void SetText(int id, const WCHAR *text);
+	void RowYMetrics(struct RowYMetrics *m, Layouter *d);
 	SIZE MinimumSize(Layouter *d);
 	HDWP Relayout(HDWP dwp, LONG x, LONG y, Layouter *d);
 };
