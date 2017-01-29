@@ -153,6 +153,16 @@ Form::Form(HWND parent, int id)
 		this->edits.reserve(16);
 }
 
+int Form::ID(void)
+{
+	return this->id;
+}
+
+void Form::SetID(int id)
+{
+	this->id = id;
+}
+
 void Form::Add(const WCHAR *msg)
 {
 	HWND hwnd;

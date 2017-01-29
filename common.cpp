@@ -34,8 +34,13 @@ static HWND mkedit(int width, HWND parent, int *idoff)
 	return hwnd;
 }
 
+#define stylesStyles 0
+#define stylesExStyles 1
+
 // TODO rename idoff to itemid
-Common::Common(HWND parent, int idoff)
+// TODO find a sensible layout for the colon or switch to a pointer
+Common::Common(HWND parent, int idoff) :
+	styles(parent)
 {
 	this->labelVersion = mklabel(L"comctl32.dll Version", parent, &idoff);
 	this->editVersionWidth = 35;
@@ -53,12 +58,11 @@ Common::Common(HWND parent, int idoff)
 	this->editSWTpszSubIdList = mkedit(this->editSWTpszSubIdListWidth, parent, &idoff);
 	this->labelSWTRightParen = mklabel(L")", parent, &idoff);
 
-	this->labelStyles = mklabel(L"Styles", parent, &idoff);
-	this->editStylesWidth = 100;
-	this->editStyles = mkedit(this->editStylesWidth, parent, &idoff);
-	this->labelExStyles = mklabel(L"Extended Styles", parent, &idoff);
-	this->editExStylesWidth = 100;
-	this->editExStyles = mkedit(this->editExStylesWidth, parent, &idoff);
+	this->styles.SetID(idoff);
+	this->styles.Add(L"Styles");
+	this->styles.Add(L"Extended Styles");
+	this->stylesMinEditWidth = 100;
+	idoff = this->styles.ID();
 }
 
 void Common::Reset(void)
@@ -70,10 +74,8 @@ void Common::Reset(void)
 		panic(L"error resetting pszSubAppName text: %I32d", GetLastError());
 	if (SetWindowTextW(this->editSWTpszSubIdList, L"N/A") == 0)
 		panic(L"error resetting pszSubIdList text: %I32d", GetLastError());
-	if (SetWindowTextW(this->editStyles, L"N/A") == 0)
-		panic(L"error resetting styles text: %I32d", GetLastError());
-	if (SetWindowTextW(this->editExStyles, L"N/A") == 0)
-		panic(L"error resetting extended styles text: %I32d", GetLastError());
+	this->styles.SetText(stylesStyles, L"N/A");
+	this->styles.SetText(stylesExStyles, L"N/A");
 }
 
 #define TRY(bit) if ((relevant & bit) != 0) { ss << prefix << #bit; prefix = L" | "; relevant &= ~(bit); }
@@ -86,12 +88,11 @@ void Common::Reset(void)
 	TRY(CCS_NODIVIDER) \
 	TRY(CCS_VERT)
 
-static void setToolbarStyleEdit(HWND edit, HWND toolbar)
+static std::wstring toolbarStyleString(HWND toolbar)
 {
 	uint16_t relevant;
 	const WCHAR *prefix = L"";
 	std::wostringstream ss;
-	std::wstring s;
 
 	relevant = (uint16_t) (GetWindowLongPtrW(toolbar, GWL_STYLE) & 0xFFFF);
 	TRYCC
@@ -110,17 +111,14 @@ static void setToolbarStyleEdit(HWND edit, HWND toolbar)
 		ss.width(4);
 		ss << relevant;
 	}
-	s = ss.str();		// to be safe
-	if (SetWindowTextW(edit, s.c_str()) == 0)
-		panic(L"error setting toolbar Style text: %I32d", GetLastError());
+	return ss.str();
 }
 
-static void setToolbarExStyleEdit(HWND edit, HWND toolbar)
+static std::wstring toolbarExStyleString(HWND toolbar)
 {
 	DWORD relevant;
 	const WCHAR *prefix = L"";
 	std::wostringstream ss;
-	std::wstring s;
 
 	relevant = (DWORD) SendMessageW(toolbar, TB_GETEXTENDEDSTYLE, 0, 0);
 	TRY(TBSTYLE_EX_DRAWDDARROWS)
@@ -136,9 +134,7 @@ static void setToolbarExStyleEdit(HWND edit, HWND toolbar)
 		ss.width(8);
 		ss << relevant;
 	}
-	s = ss.str();		// to be safe
-	if (SetWindowTextW(edit, s.c_str()) == 0)
-		panic(L"error setting toolbar Extended Style text: %I32d", GetLastError());
+	return ss.str();
 }
 
 static WCHAR *nullCopy(void)
@@ -166,6 +162,7 @@ void Common::Reflect(HWND hwnd, Process *p)
 	if (wc != -1) {
 		WCHAR *dgv;
 		HICON iconToUse;
+		std::wstring s;
 
 		dgv = getDLLVersion(hwnd, p);
 		if (SetWindowTextW(this->editVersion, dgv) == 0)
@@ -179,8 +176,10 @@ void Common::Reflect(HWND hwnd, Process *p)
 
 		switch (wc) {
 		case DESIREDTOOLBAR:
-			setToolbarStyleEdit(this->editStyles, hwnd);
-			setToolbarExStyleEdit(this->editExStyles, hwnd);
+			s = toolbarStyleString(hwnd);
+			this->styles.SetText(stylesStyles, s.c_str());
+			s = toolbarExStyleString(hwnd);
+			this->styles.SetText(stylesExStyles, s.c_str());
 			break;
 		case DESIREDREBAR:
 			// TODO
@@ -208,6 +207,7 @@ SIZE Common::MinimumSize(Layouter *dparent)
 	Layouter *d;
 	SIZE checkSize;
 	LONG editHeight;
+	SIZE otherSize;
 
 	ret.cx = 0;
 	ret.cy = 0;
@@ -247,15 +247,12 @@ SIZE Common::MinimumSize(Layouter *dparent)
 	delete d;
 
 	// TODO don't assume the label's bottom will be above the edit's bottom
-	ret.cy += 2 * dparent->PaddingY() + 2 * editHeight;
-	d = new Layouter(this->labelStyles);
-	if (ret.cx < (d->TextWidth() + dparent->PaddingX() + this->editStylesWidth))
-		ret.cx = (d->TextWidth() + dparent->PaddingX() + this->editStylesWidth);
-	delete d;
-	d = new Layouter(this->labelExStyles);
-	if (ret.cx < (d->TextWidth() + dparent->PaddingX() + this->editExStylesWidth))
-		ret.cx = (d->TextWidth() + dparent->PaddingX() + this->editExStylesWidth);
-	delete d;
+	ret.cy += dparent->PaddingY();
+	// TODO merge this variable somehow
+	otherSize = this->styles.MinimumSize(this->stylesMinEditWidth, dparent);
+	if (ret.cx < otherSize.cx)
+		ret.cx = otherSize.cx;
+	ret.cy += otherSize.cy;
 
 	return ret;
 }
@@ -395,56 +392,20 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 		panic(L"error moving Unicode icon: %I32d", GetLastError());
 
 	cury = fill->top + height + dparent->PaddingY();
-	d = new Layouter(this->labelStyles);
-	curx = fill->left + d->TextWidth() + dparent->PaddingX();
-	delete d;
-	d = new Layouter(this->labelExStyles);
-	if (curx < (fill->left + d->TextWidth() + dparent->PaddingX()))
-		curx = (fill->left + d->TextWidth() + dparent->PaddingX());
-	dlabel = d;
-	dedit = new Layouter(this->editStyles);
-	dwp = DeferWindowPos(dwp,
-		this->labelStyles, NULL,
-		fill->left, cury + (yLabel - yEdit),
-		(curx - dparent->PaddingX()) - fill->left, dlabel->LabelHeight(),
-		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
-	if (dwp == NULL)
-		panic(L"error moving Styles label: %I32d", GetLastError());
-	dwp = DeferWindowPos(dwp,
-		this->editStyles, NULL,
-		curx, cury,
-		fill->right - curx, dedit->EditHeight(),
-		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
-	if (dwp == NULL)
-		panic(L"error moving Styles edit: %I32d", GetLastError());
-	cury += dedit->EditHeight() + dparent->PaddingY();
-	dwp = DeferWindowPos(dwp,
-		this->labelExStyles, NULL,
-		fill->left, cury + (yLabel - yEdit),
-		(curx - dparent->PaddingX()) - fill->left, dlabel->LabelHeight(),
-		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
-	if (dwp == NULL)
-		panic(L"error moving Extended Styles label: %I32d", GetLastError());
-	dwp = DeferWindowPos(dwp,
-		this->editExStyles, NULL,
-		curx, cury,
-		fill->right - curx, dedit->EditHeight(),
-		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
-	if (dwp == NULL)
-		panic(L"error moving Extended Styles edit: %I32d", GetLastError());
-	delete dedit;
-	delete d;
+	dwp = this->styles.Relayout(dwp,
+		fill->left, cury,
+		fill->right - fill->left,
+		dparent);
 
 	if (EndDeferWindowPos(dwp) == 0)
 		panic(L"error committing new common section control positions: %I32d", GetLastError());
 }
 
 // TODO find a better place for this; it's only here because it uses the TRY() macro
-void setDrawTextFlagsEdit(HWND edit, UINT relevant)
+std::wstring drawTextFlagsString(UINT relevant)
 {
 	const WCHAR *prefix = L"";
 	std::wostringstream ss;
-	std::wstring s;
 
 	TRY(DT_CENTER)
 	TRY(DT_RIGHT)
@@ -475,7 +436,5 @@ void setDrawTextFlagsEdit(HWND edit, UINT relevant)
 		ss.width(8);
 		ss << relevant;
 	}
-	s = ss.str();		// to be safe
-	if (SetWindowTextW(edit, s.c_str()) == 0)
-		panic(L"error setting DrawText() flag text: %I32d", GetLastError());
+	return ss.str();
 }

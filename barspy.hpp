@@ -73,6 +73,8 @@ class Form {
 	HDWP relayout(HDWP dwp, LONG x, LONG y, LONG width, bool widthIsEditOnly, Layouter *dparent);
 public:
 	Form(HWND parent, int id = 100);
+	int ID(void);
+	void SetID(int id);
 	void Add(const WCHAR *msg);
 	void SetText(int id, const WCHAR *text);
 	SIZE MinimumSize(LONG minEditWidth, Layouter *dparent);
@@ -122,12 +124,8 @@ class Common {
 	int editSWTpszSubIdListWidth;
 	HWND labelSWTRightParen;
 
-	HWND labelStyles;
-	HWND editStyles;
-	int editStylesWidth;
-	HWND labelExStyles;
-	HWND editExStyles;
-	int editExStylesWidth;
+	Form styles;
+	int stylesMinEditWidth;
 public:
 	Common(HWND parent, int idoff);
 
@@ -137,7 +135,7 @@ public:
 	SIZE MinimumSize(Layouter *dparent);
 	void Relayout(RECT *fill, Layouter *dparent);
 };
-extern void setDrawTextFlagsEdit(HWND edit, UINT relevant);
+extern std::wstring drawTextFlagsString(UINT relevant);
 
 // gettheme.cpp
 extern void getWindowTheme(HWND hwnd, Process *p, WCHAR **pszSubAppName, WCHAR **pszSubIdList);
