@@ -83,7 +83,6 @@ extern void rowYMetrics(struct RowYMetrics *m, Layouter *d, RECT *iconRect = NUL
 extern LONG longestTextWidth(Layouter *d, const std::vector<HWND> &hwnds);
 template<typename... Ts>
 extern LONG longestTextWidth(Layouter *d, HWND first, Ts... hwnds);
-// TODO allow icons
 class Form {
 	HWND parent;
 	int id;
@@ -91,7 +90,11 @@ class Form {
 	bool padded;
 	std::vector<HWND> labels;
 	std::vector<HWND> edits;
+	std::vector<HWND> icons;
+	HWND firstIcon;
+	void addLabel(const WCHAR *label);
 	void padding(Layouter *d, LONG *x, LONG *y);
+	LONG effectiveMinEditWidth(void);
 	HDWP relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool widthIsEditOnly, Layouter *d);
 public:
 	Form(HWND parent, int id = 100, int minEditWidth = 0);
@@ -100,7 +103,9 @@ public:
 	void SetMinEditWidth(int editMinWidth);
 	void SetPadded(bool padded);
 	void Add(const WCHAR *label);
+	void AddCheckmark(const WCHAR *label);
 	void SetText(int id, const WCHAR *text);
+	void SetCheckmark(int id, HICON icon);
 	void RowYMetrics(struct RowYMetrics *m, Layouter *d);
 	SIZE MinimumSize(Layouter *d);
 	HDWP Relayout(HDWP dwp, LONG x, LONG y, Layouter *d);

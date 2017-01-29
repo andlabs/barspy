@@ -202,6 +202,9 @@ Form::Form(HWND parent, int id, int minEditWidth)
 		this->labels.reserve(16);
 	if (this->edits.capacity() < 16)
 		this->edits.reserve(16);
+	if (this->icons.capacity() < 16)
+		this->icons.reserve(16);
+	this->firstIcon = NULL;
 }
 
 int Form::ID(void)
@@ -224,7 +227,7 @@ void Form::SetPadded(bool padded)
 	this->padded = padded;
 }
 
-void Form::Add(const WCHAR *label)
+void Form::addLabel(const WCHAR *label)
 {
 	HWND hwnd;
 
@@ -239,7 +242,13 @@ void Form::Add(const WCHAR *label)
 	SendMessageW(hwnd, WM_SETFONT, (WPARAM) hMessageFont, TRUE);
 	this->labels.push_back(hwnd);
 	this->id++;
+}
 
+void Form::Add(const WCHAR *label)
+{
+	HWND hwnd;
+
+	this->addLabel(label);
 	hwnd = CreateWindowExW(WS_EX_CLIENTEDGE,
 		L"EDIT", L"",
 		// TODO remove READONLY if this ever becomes an editor instead of just a viewer
@@ -250,6 +259,20 @@ void Form::Add(const WCHAR *label)
 		panic(L"error creating edit: %I32d", GetLastError());
 	SendMessageW(hwnd, WM_SETFONT, (WPARAM) hMessageFont, TRUE);
 	this->edits.push_back(hwnd);
+	this->icons.push_back(NULL);
+	this->id++;
+}
+
+void Form::AddCheckmark(const WCHAR *label)
+{
+	HWND hwnd;
+
+	this->addLabel(label);
+	hwnd = newCheckmark(this->parent, (HMENU) (this->id));
+	this->edits.push_back(NULL);
+	this->icons.push_back(hwnd);
+	if (this->firstIcon == NULL)
+		this->firstIcon = hwnd;
 	this->id++;
 }
 
@@ -257,6 +280,11 @@ void Form::SetText(int id, const WCHAR *text)
 {
 	if (SetWindowTextW(this->edits[id], text) == 0)
 		panic(L"error setting form edit text: %I32d", GetLastError());
+}
+
+void Form::SetCheckmark(int id, HICON icon)
+{
+	setCheckmarkIcon(this->icons[id], icon);
 }
 
 void Form::padding(Layouter *d, LONG *x, LONG *y)
@@ -272,7 +300,34 @@ void Form::padding(Layouter *d, LONG *x, LONG *y)
 
 void Form::RowYMetrics(struct RowYMetrics *m, Layouter *d)
 {
-	rowYMetrics(m, d, NULL);
+	RECT r;
+	RECT *pr;
+
+	pr = NULL;
+	if (this->firstIcon != NULL) {
+		SIZE s;
+
+		s = checkmarkSize(this->firstIcon);
+		r.left = 0;
+		r.top = 0;
+		r.right = s.cx;
+		r.bottom = s.cy;
+		pr = &r;
+	}
+	rowYMetrics(m, d, pr);
+}
+
+LONG Form::effectiveMinEditWidth(void)
+{
+	LONG ret, r2;
+
+	ret = this->minEditWidth;
+	if (this->firstIcon == NULL)
+		return ret;
+	r2 = checkmarkSize(this->firstIcon).cx;
+	if (ret < r2)
+		ret = r2;
+	return ret;
 }
 
 SIZE Form::MinimumSize(Layouter *d)
@@ -285,7 +340,7 @@ SIZE Form::MinimumSize(Layouter *d)
 	this->padding(d, &xPadding, &yPadding);
 
 	minLabelWidth = longestTextWidth(d, this->labels);
-	s.cx = minLabelWidth + xPadding + this->minEditWidth;
+	s.cx = minLabelWidth + xPadding + this->effectiveMinEditWidth();
 
 	this->RowYMetrics(&m, d);
 	s.cy = (LONG) (m.TotalHeight * this->labels.size());
@@ -301,11 +356,12 @@ HDWP Form::relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool wi
 	LONG xPadding, yPadding;
 	struct RowYMetrics m;
 	size_t i, n;
+	HWND hwnd;
 
 	this->padding(d, &xPadding, &yPadding);
 	this->RowYMetrics(&m, d);
 	labelwid = longestTextWidth(d, this->labels);
-	editwid = this->minEditWidth;
+	editwid = this->effectiveMinEditWidth();
 	if (useWidth) {
 		editwid = width;
 		if (!widthIsEditOnly)
@@ -318,10 +374,17 @@ HDWP Form::relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool wi
 			x, y + m.LabelY,
 			labelwid, m.LabelHeight,
 			0);
-		dwp = deferWindowPos(dwp, this->edits[i],
-			x + labelwid + xPadding, y + m.EditY,
-			editwid, m.EditHeight,
-			0);
+		hwnd = this->edits[i];
+		if (hwnd != NULL)		// edit
+			dwp = deferWindowPos(dwp, hwnd,
+				x + labelwid + xPadding, y + m.EditY,
+				editwid, m.EditHeight,
+				0);
+		else					// checkmark
+			dwp = deferWindowPos(dwp, this->icons[i],
+				x + labelwid + xPadding, y + m.IconY,
+				0, 0,
+				SWP_NOSIZE);
 		y += m.TotalHeight + yPadding;
 	}
 	return dwp;
