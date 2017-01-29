@@ -11,6 +11,7 @@ extern HICON hDefIcon;
 extern HCURSOR hDefCursor;
 extern HBRUSH blackBrush;
 extern HFONT hMessageFont;
+// TODO rename or delete this
 extern void initCommon(HINSTANCE hInst, int nCS);
 
 // mainwin.cpp
@@ -68,17 +69,20 @@ extern LONG longestTextWidth(HWND hwnd, ...);
 class Form {
 	HWND parent;
 	int id;
+	int minEditWidth;
 	std::vector<HWND> labels;
 	std::vector<HWND> edits;
-	HDWP relayout(HDWP dwp, LONG x, LONG y, LONG width, bool widthIsEditOnly, Layouter *dparent);
+	HDWP relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool widthIsEditOnly, Layouter *dparent);
 public:
-	Form(HWND parent, int id = 100);
+	Form(HWND parent, int id = 100, int minEditWidth = 0);
 	int ID(void);
 	void SetID(int id);
+	void SetMinEditWidth(int editMinWidth);
 	void Add(const WCHAR *msg);
 	void SetText(int id, const WCHAR *text);
-	SIZE MinimumSize(LONG minEditWidth, Layouter *dparent);
-	HDWP Relayout(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent);
+	SIZE MinimumSize(Layouter *dparent);
+	HDWP Relayout(HDWP dwp, LONG x, LONG y, Layouter *dparent);
+	HDWP RelayoutWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent);
 	HDWP RelayoutEditWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent);
 };
 
@@ -125,7 +129,6 @@ class Common {
 	HWND labelSWTRightParen;
 
 	Form styles;
-	int stylesMinEditWidth;
 public:
 	Common(HWND parent, int idoff);
 

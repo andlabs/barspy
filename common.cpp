@@ -58,10 +58,10 @@ Common::Common(HWND parent, int idoff) :
 	this->editSWTpszSubIdList = mkedit(this->editSWTpszSubIdListWidth, parent, &idoff);
 	this->labelSWTRightParen = mklabel(L")", parent, &idoff);
 
+	this->styles.SetMinEditWidth(100);
 	this->styles.SetID(idoff);
 	this->styles.Add(L"Styles");
 	this->styles.Add(L"Extended Styles");
-	this->stylesMinEditWidth = 100;
 	idoff = this->styles.ID();
 }
 
@@ -249,7 +249,7 @@ SIZE Common::MinimumSize(Layouter *dparent)
 	// TODO don't assume the label's bottom will be above the edit's bottom
 	ret.cy += dparent->PaddingY();
 	// TODO merge this variable somehow
-	otherSize = this->styles.MinimumSize(this->stylesMinEditWidth, dparent);
+	otherSize = this->styles.MinimumSize(dparent);
 	if (ret.cx < otherSize.cx)
 		ret.cx = otherSize.cx;
 	ret.cy += otherSize.cy;
@@ -392,7 +392,7 @@ void Common::Relayout(RECT *fill, Layouter *dparent)
 		panic(L"error moving Unicode icon: %I32d", GetLastError());
 
 	cury = fill->top + height + dparent->PaddingY();
-	dwp = this->styles.Relayout(dwp,
+	dwp = this->styles.RelayoutWidth(dwp,
 		fill->left, cury,
 		fill->right - fill->left,
 		dparent);

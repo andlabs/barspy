@@ -143,10 +143,11 @@ LONG longestTextWidth(HWND hwnd, ...)
 	return longestTextWidth(hwnds);
 }
 
-Form::Form(HWND parent, int id)
+Form::Form(HWND parent, int id, int minEditWidth)
 {
 	this->parent = parent;
 	this->id = id;
+	this->minEditWidth = minEditWidth;
 	if (this->labels.capacity() < 16)
 		this->labels.reserve(16);
 	if (this->edits.capacity() < 16)
@@ -161,6 +162,11 @@ int Form::ID(void)
 void Form::SetID(int id)
 {
 	this->id = id;
+}
+
+void Form::SetMinEditWidth(int minEditWidth)
+{
+	this->minEditWidth = minEditWidth;
 }
 
 void Form::Add(const WCHAR *msg)
@@ -197,15 +203,15 @@ void Form::SetText(int id, const WCHAR *text)
 		panic(L"error setting form edit text: %I32d", GetLastError());
 }
 
-// TODO optional arrange horizontally
-SIZE Form::MinimumSize(LONG minEditWidth, Layouter *dparent)
+// TODO allow optional horizontal arrangement
+SIZE Form::MinimumSize(Layouter *dparent)
 {
 	SIZE s;
 	LONG minLabelWidth;
 
 	minLabelWidth = longestTextWidth(this->labels);
-	// TODO optional padding
-	s.cx = minLabelWidth + dparent->PaddingX() + minEditWidth;
+	// TODO make padding optional
+	s.cx = minLabelWidth + dparent->PaddingX() + this->minEditWidth;
 	// TODO make sure label height + offset is always < edit height
 	// this intuitively seems to be so
 	s.cy = (LONG) (Layouter(this->edits[0]).EditHeight() * this->edits.size());
@@ -213,7 +219,7 @@ SIZE Form::MinimumSize(LONG minEditWidth, Layouter *dparent)
 	return s;
 }
 
-HDWP Form::relayout(HDWP dwp, LONG x, LONG y, LONG width, bool widthIsEditOnly, Layouter *dparent)
+HDWP Form::relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool widthIsEditOnly, Layouter *dparent)
 {
 	LONG labelwid, labelht;
 	LONG editwid, editht;
@@ -229,9 +235,12 @@ HDWP Form::relayout(HDWP dwp, LONG x, LONG y, LONG width, bool widthIsEditOnly, 
 	labelht = d->LabelHeight();
 	yLine = dparent->LabelYForSiblingY(0, d);
 	delete d;
-	editwid = width;
-	if (!widthIsEditOnly)
-		editwid -= labelwid + xPadding;
+	editwid = this->minEditWidth;
+	if (useWidth) {
+		editwid = width;
+		if (!widthIsEditOnly)
+			editwid -= labelwid + xPadding;
+	}
 	editht = Layouter(this->edits[0]).EditHeight();
 
 	n = this->labels.size();
@@ -250,12 +259,17 @@ HDWP Form::relayout(HDWP dwp, LONG x, LONG y, LONG width, bool widthIsEditOnly, 
 	return dwp;
 }
 
-HDWP Form::Relayout(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent)
+HDWP Form::Relayout(HDWP dwp, LONG x, LONG y, Layouter *dparent)
 {
-	return this->relayout(dwp, x, y, width, false, dparent);
+	return this->relayout(dwp, x, y, false, 0, false, dparent);
+}
+
+HDWP Form::RelayoutWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent)
+{
+	return this->relayout(dwp, x, y, true, width, false, dparent);
 }
 
 HDWP Form::RelayoutEditWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent)
 {
-	return this->relayout(dwp, x, y, width, true, dparent);
+	return this->relayout(dwp, x, y, true, width, true, dparent);
 }
