@@ -159,11 +159,12 @@ void rowYMetrics(struct RowYMetrics *m, Layouter *d, RECT *iconRect)
 		m->LabelY = d->LabelYForSiblingY(m->EditY);
 	} else
 		// label+edit is taller; vertically center the icon
+		// TODO should it be vertically centered relative to the label instead?
 		m->IconY = (m->TotalHeight - iconHeight) / 2;
 
 	// and get the Y position to put iconless forms
 	m->LabelEditY = m->LabelY;
-	if (m->LabelEditY < m->EditY)
+	if (m->LabelEditY >= m->EditY)
 		m->LabelEditY = m->EditY;
 }
 

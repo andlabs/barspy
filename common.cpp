@@ -171,89 +171,66 @@ void Common::Reflect(HWND hwnd, Process *p)
 SIZE Common::MinimumSize(Layouter *d)
 {
 	SIZE ret;
-	SIZE csize;
+	SIZE sUnicode;		// has an icon; use it for the height
+	SIZE sStyles;
 
 	ret.cx = 0;
 	ret.cy = 0;
 
-	ret = this->version.MinimumSize(d);
-
+	ret.cx = this->version.MinimumSize(d).cx;
 	ret.cx += d->PaddingX();
-	csize = this->unicode.MinimumSize(d);
-	ret.cx += csize.cx;
-	if (ret.cy < csize.cy)
-		ret.cy = csize.cy;
-
-	csize = this->setWindowTheme.MinimumSize(d);
-	ret.cx += csize.cx;
-	if (ret.cy < csize.cy)
-		ret.cy = csize.cy;
+	sUnicode = this->unicode.MinimumSize(d);
+	ret.cx += sUnicode.cx;
+	ret.cx += d->PaddingX();
+	ret.cx += this->setWindowTheme.MinimumSize(d).cx;
+	ret.cy = sUnicode.cy;
 
 	ret.cy += d->PaddingY();
-	csize = this->styles.MinimumSize(d);
-	if (ret.cx < csize.cx)
-		ret.cx = csize.cx;
-	ret.cy += csize.cy;
+	sStyles = this->styles.MinimumSize(d);
+	if (ret.cx < sStyles.cx)
+		ret.cx = sStyles.cx;
+	ret.cy += sStyles.cy;
 
 	return ret;
 }
 
 void Common::Relayout(RECT *fill, Layouter *d)
 {
-	SIZE checkSize;
-	SIZE otherSize;			// TODO clean this up
-	int height;
-	int yLabel = 0;
-	int yEdit = 0;
-	int yIcon = 0;
 	HDWP dwp;
-	int curx, oldx;
-	int centerWidth;
-	int cury;
+	POINT pVersion, pUnicode, pSWT;
+	SIZE sVersion, sUnicode, sSWT;
+	struct RowYMetrics m;		// of the Unicode one, since it has an icon
 
-	checkSize = this->unicode.MinimumSize(d);
-	otherSize = this->setWindowTheme.MinimumSize(d);
-	height = otherSize.cy;
-	if (height < checkSize.cy) {
-		height = checkSize.cy;
-		// icon is largest; make it 0 and vertically center edit
-		yIcon = 0;
-		yEdit = (height - d->EditHeight()) / 2;
-	} else {
-		// edit is largest; make it 0 and vertically center icon
-		yEdit = 0;
-		yIcon = (height - checkSize.cy) / 2;
-	}
-	yLabel = d->LabelYForSiblingY(yEdit);
+	sVersion = this->version.MinimumSize(d);
+	sUnicode = this->unicode.MinimumSize(d);
+	sSWT = this->setWindowTheme.MinimumSize(d);
+	this->unicode.RowYMetrics(&m, d);
+
+	pVersion.x = fill->left;
+	pVersion.y = fill->top + m.LabelEditY;
+	pSWT.x = fill->right - sSWT.cx;
+	pSWT.y = fill->top + m.LabelEditY;
+	// center Unicode in the remaining space, not the available space
+	pUnicode.x = pVersion.x + sVersion.cx;
+	pUnicode.x = pUnicode.x + (pSWT.x - pUnicode.x - sUnicode.cx) / 2;
+	pUnicode.y = fill->top;		// TODO what do we add to this to align it properly?
 
 	dwp = BeginDeferWindowPos(10);
 	if (dwp == NULL)
 		panic(L"BeginDeferWindowProc() failed: %I32d\n", GetLastError());
 
 	dwp = this->version.Relayout(dwp,
-		fill->left, fill->top,
+		pVersion.x, pVersion.y,
 		d);
-	oldx = fill->left + this->version.MinimumSize(d).cx;
-
-	// now rearrange the right half
-	curx = fill->right - otherSize.cx;
-	dwp = this->setWindowTheme.Relayout(dwp,
-		curx, fill->top,
-		d);
-
-	// now lay out the center
-	// we'll center it relative to the remaining space, not to the entire width of the details area
-	centerWidth = d->PaddingX();
-	centerWidth += checkSize.cx;
-	curx = ((curx - oldx) - centerWidth) / 2;
-	curx += oldx + d->PaddingX();
 	dwp = this->unicode.Relayout(dwp,
-		curx, fill->top + yLabel,
+		pUnicode.x, pUnicode.y,
+		d);
+	dwp = this->setWindowTheme.Relayout(dwp,
+		pSWT.x, pSWT.y,
 		d);
 
-	cury = fill->top + height + d->PaddingY();
 	dwp = this->styles.RelayoutWidth(dwp,
-		fill->left, cury,
+		fill->left, fill->top + m.TotalHeight + d->PaddingY(),
 		fill->right - fill->left,
 		d);
 
