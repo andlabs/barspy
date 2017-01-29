@@ -64,6 +64,21 @@ public:
 	int LabelHeight(void);
 };
 extern LONG longestTextWidth(HWND hwnd, ...);
+// TODO allow icons
+class Form {
+	HWND parent;
+	int id;
+	std::vector<HWND> labels;
+	std::vector<HWND> edits;
+	HDWP relayout(HDWP dwp, LONG x, LONG y, LONG width, bool widthIsEditOnly, Layouter *dparent);
+public:
+	Form(HWND parent, int id = 100);
+	void Add(const WCHAR *msg);
+	void SetText(int id, const WCHAR *text);
+	SIZE MinimumSize(LONG minEditWidth, Layouter *dparent);
+	HDWP Relayout(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent);
+	HDWP RelayoutEditWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent);
+};
 
 // process.cpp
 class Process {

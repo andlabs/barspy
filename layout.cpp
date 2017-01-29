@@ -143,22 +143,6 @@ LONG longestTextWidth(HWND hwnd, ...)
 	return longestTextWidth(hwnds);
 }
 
-// TODO allow icons
-class Form {
-	HWND parent;
-	int id;
-	std::vector<HWND> labels;
-	std::vector<HWND> edits;
-	HDWP relayout(HDWP dwp, LONG x, LONG y, LONG width, bool widthIsEditOnly, Layouter *dparent);
-public:
-	Form(HWND parent, int id = 100);
-	void Add(const WCHAR *msg);
-	void SetText(int id, const WCHAR *text);
-	SIZE MinimumSize(LONG minEditWidth, Layouter *dparent);
-	HDWP Relayout(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent);
-	HDWP RelayoutEditWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent);
-};
-
 Form::Form(HWND parent, int id)
 {
 	this->parent = parent;
@@ -214,15 +198,15 @@ SIZE Form::MinimumSize(LONG minEditWidth, Layouter *dparent)
 	s.cx = minLabelWidth + dparent->PaddingX() + minEditWidth;
 	// TODO make sure label height + offset is always < edit height
 	// this intuitively seems to be so
-	s.cy = Layouter(this->edits[0]).EditHeight() * this->edits.size();
-	s.cy += dparent->PaddingY() * (this->edits.size() - 1);
+	s.cy = (LONG) (Layouter(this->edits[0]).EditHeight() * this->edits.size());
+	s.cy += (LONG) (dparent->PaddingY() * (this->edits.size() - 1));
 	return s;
 }
 
 HDWP Form::relayout(HDWP dwp, LONG x, LONG y, LONG width, bool widthIsEditOnly, Layouter *dparent)
 {
-	LONG labelWidth, labelHeight;
-	LONG editWidth, editHeight;
+	LONG labelwid, labelht;
+	LONG editwid, editht;
 	LONG xPadding, yPadding;
 	LONG yLine;
 	Layouter *d;
@@ -230,37 +214,38 @@ HDWP Form::relayout(HDWP dwp, LONG x, LONG y, LONG width, bool widthIsEditOnly, 
 
 	xPadding = dparent->PaddingX();
 	yPadding = dparent->PaddingY();
-	labelWidth = longestTextWidths(this->labels);
+	labelwid = longestTextWidth(this->labels);
 	d = new Layouter(this->labels[0]);
-	labelHeight = d->LabelHeight();
+	labelht = d->LabelHeight();
 	yLine = dparent->LabelYForSiblingY(0, d);
 	delete d;
-	editWidth = width;
+	editwid = width;
 	if (!widthIsEditOnly)
-		editWidth -= labelWidth - xPadding;
+		editwid -= labelwid - xPadding;
+	editht = Layouter(this->edits[0]).EditHeight();
 
 	n = this->labels.size();
 	for (i = 0; i < n; i++) {
 		dwp = deferWindowPos(dwp, this->labels[i],
 			x, y + yLine,
-			labelWidth, labelHeight,
+			labelwid, labelht,
 			0);
 		dwp = deferWindowPos(dwp, this->edits[i],
-			x + labelWidth + xPadding, y,
-			editWidth, editHeight,
+			x + labelwid + xPadding, y,
+			editwid, editht,
 			0);
 		// TODO don't assume edits are always taller than labels? see above
-		y += editHeight + yPadding;
+		y += editht + yPadding;
 	}
 	return dwp;
 }
 
 HDWP Form::Relayout(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent)
 {
-	this->relayout(dwp, x, y, width, false, dparent);
+	return this->relayout(dwp, x, y, width, false, dparent);
 }
 
 HDWP Form::RelayoutEditWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *dparent)
 {
-	this->relayout(dwp, x, y, width, true, dparent);
+	return this->relayout(dwp, x, y, width, true, dparent);
 }
