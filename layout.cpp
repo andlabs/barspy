@@ -231,7 +231,7 @@ HDWP Form::relayout(HDWP dwp, LONG x, LONG y, LONG width, bool widthIsEditOnly, 
 	delete d;
 	editwid = width;
 	if (!widthIsEditOnly)
-		editwid -= labelwid - xPadding;
+		editwid -= labelwid + xPadding;
 	editht = Layouter(this->edits[0]).EditHeight();
 
 	n = this->labels.size();
