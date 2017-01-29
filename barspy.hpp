@@ -44,16 +44,22 @@ extern SIZE checkmarkSize(HWND hwnd);
 
 // layout.cpp
 class Layouter {
+	HWND hwnd;
+	HDC dc;
+	HFONT prevfont;
 	int baseX, baseY;
 	TEXTMETRICW tm;
-	SIZE textSize;
 public:
 	Layouter(HWND hwnd);
+	~Layouter();
 
 	int X(int x);
 	int Y(int y);
 	LONG InternalLeading(void);
-	LONG TextWidth(void);
+
+	LONG TextWidth(const WCHAR *text, size_t len);
+	LONG TextWidth(const WCHAR *text);
+	LONG TextWidth(HWND hwnd);
 
 	// specifics
 	int PaddingX(void);
@@ -64,7 +70,9 @@ public:
 	int LabelYForSiblingY(int siblingY, Layouter *label);
 	int LabelHeight(void);
 };
-extern LONG longestTextWidth(HWND hwnd, ...);
+extern LONG longestTextWidth(Layouter *d, const std::vector<HWND> &hwnds);
+template<typename... Ts>
+extern LONG longestTextWidth(Layouter *d, HWND first, Ts... hwnds);
 // TODO allow icons
 class Form {
 	HWND parent;

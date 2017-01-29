@@ -6,39 +6,31 @@
 
 Layouter::Layouter(HWND hwnd)
 {
-	HDC dc;
-	HFONT prevfont;
 	SIZE size;
-	LRESULT len;
-	WCHAR *text;
 
-	dc = GetDC(hwnd);
+	this->hwnd = hwnd;
+	this->dc = GetDC(this->hwnd);
 	if (dc == NULL)
 		panic(L"error getting DC for layout calculations: %I32d", GetLastError());
-	prevfont = (HFONT) SelectObject(dc, hMessageFont);
+	this->prevfont = (HFONT) SelectObject(this->dc, hMessageFont);
 	if (prevfont == NULL)
 		panic(L"error selecting font for layout calculations: %I32d", GetLastError());
 
 	ZeroMemory(&(this->tm), sizeof (TEXTMETRICW));
-	if (GetTextMetricsW(dc, &(this->tm)) == 0)
+	if (GetTextMetricsW(this->dc, &(this->tm)) == 0)
 		panic(L"error getting text metrics for layout calculations: %I32d", GetLastError());
-	if (GetTextExtentPoint32W(dc, L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 52, &size) == 0)
+	if (GetTextExtentPoint32W(this->dc, L"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 52, &size) == 0)
 		panic(L"error getting text extents for DLU calculations: %I32d", GetLastError());
 
 	this->baseX = (int) ((size.cx / 26 + 1) / 2);
 	this->baseY = (int) tm.tmHeight;
+}
 
-	len = SendMessageW(hwnd, WM_GETTEXTLENGTH, 0, 0);
-	text = new WCHAR[len + 1];
-	if (GetWindowTextW(hwnd, text, (int) (len + 1)) != len)
-		panic(L"error getting window text for layout calculations: %I32d", GetLastError());
-	if (GetTextExtentPoint32W(dc, text, (int) len, &(this->textSize)) == 0)
-		panic(L"error getting window text extents for layout calculations: %I32d", GetLastError());
-	delete[] text;
-
-	if (SelectObject(dc, prevfont) != hMessageFont)
+Layouter::~Layouter()
+{
+	if (SelectObject(this->dc, this->prevfont) != hMessageFont)
 		panic(L"error unselecting font for layout calculations: %I32d", GetLastError());
-	if (ReleaseDC(hwnd, dc) == 0)
+	if (ReleaseDC(this->hwnd, this->dc) == 0)
 		panic(L"error releasing DC for layout calculations: %I32d", GetLastError());
 }
 
@@ -57,9 +49,33 @@ LONG Layouter::InternalLeading(void)
 	return this->tm.tmInternalLeading;
 }
 
-LONG Layouter::TextWidth(void)
+LONG Layouter::TextWidth(const WCHAR *text, size_t len)
 {
-	return this->textSize.cx;
+	SIZE textSize;
+
+	if (GetTextExtentPoint32W(this->dc, text, (int) len, &textSize) == 0)
+		panic(L"error getting text extents for layout calculations: %I32d", GetLastError());
+	return textSize.cx;
+}
+
+LONG Layouter::TextWidth(const WCHAR *text)
+{
+	return this->TextWidth(text, wcslen(text));
+}
+
+LONG Layouter::TextWidth(HWND hwnd)
+{
+	LRESULT len;
+	WCHAR *text;
+	LONG ret;
+
+	len = SendMessageW(hwnd, WM_GETTEXTLENGTH, 0, 0);
+	text = new WCHAR[len + 1];
+	if (GetWindowTextW(hwnd, text, (int) (len + 1)) != len)
+		panic(L"error getting window text for layout calculations: %I32d", GetLastError());
+	ret = this->TextWidth(text, len);
+	delete[] text;
+	return ret;
 }
 
 // from https://msdn.microsoft.com/en-us/library/windows/desktop/dn742486.aspx#sizingandspacing and https://msdn.microsoft.com/en-us/library/windows/desktop/bb226818%28v=vs.85%29.aspx
@@ -111,36 +127,29 @@ int Layouter::LabelHeight(void)
 	return this->Y(labelHeight);
 }
 
-LONG longestTextWidth(const std::vector<HWND> hwnds)
+LONG longestTextWidth(Layouter *d, const std::vector<HWND> &hwnds)
 {
 	LONG current, next;
 
 	current = 0;
 	for (auto hwnd : hwnds) {
-		next = Layouter(hwnd).TextWidth();
+		next = d->TextWidth(hwnd);
 		if (current < next)
 			current = next;
 	}
 	return current;
 }
 
-LONG longestTextWidth(HWND hwnd, ...)
+// note: will fail if Ts is not a pack of HWND
+template<typename... Ts>
+LONG longestTextWidth(Layouter *d, HWND first, Ts... hwnds)
 {
-	va_list ap;
-	std::vector<HWND> hwnds;
+	std::vector<HWND> hv {first, hwnds...};
 
-	if (hwnds.capacity() < 16)
-		hwnds.reserve(16);
-	hwnds.push_back(hwnd);
-	va_start(ap, hwnd);
-	for (;;) {
-		hwnd = va_arg(ap, HWND);
-		if (hwnd == NULL)
-			break;
-		hwnds.push_back(hwnd);
-	}
-	va_end(ap);
-	return longestTextWidth(hwnds);
+	// gracefully handle accidentally-NULL-terminated lists
+	if (hv.back() == NULL)
+		hv.pop_back();
+	return longestTextWidth(d, hv);
 }
 
 Form::Form(HWND parent, int id, int minEditWidth)
@@ -228,11 +237,11 @@ SIZE Form::MinimumSize(Layouter *d)
 	LONG xPadding, yPadding;
 
 	this->padding(d, &xPadding, &yPadding);
-	minLabelWidth = longestTextWidth(this->labels);
+	minLabelWidth = longestTextWidth(d, this->labels);
 	s.cx = minLabelWidth + xPadding + this->minEditWidth;
 	// TODO make sure label height + offset is always < edit height
 	// this intuitively seems to be so
-	s.cy = (LONG) (Layouter(this->edits[0]).EditHeight() * this->labels.size());
+	s.cy = (LONG) (d->EditHeight() * this->labels.size());
 	s.cy += (LONG) (yPadding * (this->labels.size() - 1));
 	return s;
 }
@@ -246,7 +255,7 @@ HDWP Form::relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool wi
 	size_t i, n;
 
 	this->padding(d, &xPadding, &yPadding);
-	labelwid = longestTextWidth(this->labels);
+	labelwid = longestTextWidth(d, this->labels);
 	labelht = d->LabelHeight();
 	yLine = d->LabelYForSiblingY(0, d);
 	editwid = this->minEditWidth;
@@ -255,7 +264,7 @@ HDWP Form::relayout(HDWP dwp, LONG x, LONG y, bool useWidth, LONG width, bool wi
 		if (!widthIsEditOnly)
 			editwid -= labelwid + xPadding;
 	}
-	editht = Layouter(this->edits[0]).EditHeight();
+	editht = d->EditHeight();
 
 	n = this->labels.size();
 	for (i = 0; i < n; i++) {
@@ -379,10 +388,10 @@ SIZE Chain::MinimumSize(Layouter *d)
 	this->padding(d, &xPadding, &yPadding);
 	s.cx = (LONG) ((this->minEditWidth + xPadding) * this->edits.size());
 	for (auto hwnd : this->labels)
-		s.cx += Layouter(hwnd).TextWidth();
+		s.cx += d->TextWidth(hwnd);
 	// TODO make sure label height + offset is always < edit height
 	// this intuitively seems to be so
-	s.cy = Layouter(this->edits[0]).EditHeight();
+	s.cy = d->EditHeight();
 	return s;
 }
 
@@ -399,12 +408,12 @@ HDWP Chain::Relayout(HDWP dwp, LONG x, LONG y, Layouter *d)
 	labelht = d->LabelHeight();
 	yLine = d->LabelYForSiblingY(0, d);
 	editwid = this->minEditWidth;
-	editht = Layouter(this->edits[0]).EditHeight();
+	editht = d->EditHeight();
 
 	n = this->labels.size();
 	hasTrailingLabel = n != this->edits.size();
 	for (i = 0; i < n; i++) {
-		labelwid = Layouter(this->labels[i]).TextWidth();
+		labelwid = d->TextWidth(this->labels[i]);
 		dwp = deferWindowPos(dwp, this->labels[i],
 			x, y + yLine,
 			labelwid, labelht,

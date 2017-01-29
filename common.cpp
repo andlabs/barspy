@@ -195,7 +195,7 @@ SIZE Common::MinimumSize(Layouter *d)
 	ret = this->version.MinimumSize(d);
 
 	ret.cx += d->PaddingX();
-	ret.cx += d->TextWidth() + d->PaddingX();
+	ret.cx += d->TextWidth(this->labelUnicode) + d->PaddingX();
 	checkSize = checkmarkSize(this->iconUnicode);
 	ret.cx += checkSize.cx;
 	if (ret.cy < checkSize.cy)
@@ -264,18 +264,19 @@ void Common::Relayout(RECT *fill, Layouter *d)
 	// now lay out the center
 	// we'll center it relative to the remaining space, not to the entire width of the details area
 	centerWidth = d->PaddingX();
-	centerWidth += d->TextWidth() + d->PaddingX();
+	centerWidth += d->TextWidth(this->labelUnicode) + d->PaddingX();
 	centerWidth += checkSize.cx;
 	curx = ((curx - oldx) - centerWidth) / 2;
 	curx += oldx + d->PaddingX();
 	dwp = DeferWindowPos(dwp,
+		// TODO reduce redundancy
 		this->labelUnicode, NULL,
 		curx, fill->top + yLabel,
-		d->TextWidth(), d->LabelHeight(),
+		d->TextWidth(this->labelUnicode), d->LabelHeight(),
 		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
 	if (dwp == NULL)
 		panic(L"error moving Unicode label: %I32d", GetLastError());
-	curx += d->TextWidth() + d->PaddingX();
+	curx += d->TextWidth(this->labelUnicode) + d->PaddingX();
 	dwp = DeferWindowPos(dwp,
 		this->iconUnicode, NULL,
 		curx, fill->top + yIcon,
