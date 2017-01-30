@@ -3,6 +3,7 @@
 
 // create a Layouter at the top level and pass it down for all children
 // this is safe; see http://stackoverflow.com/questions/41917279/do-child-windows-have-the-same-dpi-as-their-parents-in-a-per-monitor-aware-appli
+// by textension, a Layouter made on a child control should have the same metrics as a Layouter made on its parent (though for libui I'll play it safe and always use the toplevel)
 
 Layouter::Layouter(HWND hwnd)
 {

@@ -13,6 +13,7 @@ Tab::Tab(HWND parent, int id)
 		this->parent, (HMENU) id, hInstance, NULL);
 	if (this->hwnd == NULL)
 		panic(L"error creating tab: %I32d", GetLastError());
+	SendMessageW(this->hwnd, WM_SETFONT, (WPARAM) hMessageFont, (LPARAM) TRUE);
 	this->id++;
 }
 
@@ -102,7 +103,9 @@ HWND Tab::Add(const WCHAR *name)
 		d = new Layouter(this->hwnd);
 		this->relayoutCurrentPage(NULL, NULL, d);
 		delete d;
-	}
+	} else
+		// otherwise we have to hide the newly created dialog
+		ShowWindow(hwnd, SW_HIDE);
 	return hwnd;
 }
 
