@@ -194,9 +194,8 @@ SIZE Common::MinimumSize(Layouter *d)
 	return ret;
 }
 
-void Common::Relayout(RECT *fill, Layouter *d)
+HDWP Common::Relayout(HDWP dwp, RECT *fill, Layouter *d)
 {
-	HDWP dwp;
 	POINT pVersion, pUnicode, pSWT;
 	SIZE sVersion, sUnicode, sSWT;
 	struct RowYMetrics m;		// of the Unicode one, since it has an icon
@@ -215,10 +214,6 @@ void Common::Relayout(RECT *fill, Layouter *d)
 	pUnicode.x = pUnicode.x + (pSWT.x - pUnicode.x - sUnicode.cx) / 2;
 	pUnicode.y = fill->top;		// TODO what do we add to this to align it properly?
 
-	dwp = BeginDeferWindowPos(10);
-	if (dwp == NULL)
-		panic(L"BeginDeferWindowProc() failed: %I32d\n", GetLastError());
-
 	dwp = this->version.Relayout(dwp,
 		pVersion.x, pVersion.y,
 		d);
@@ -234,8 +229,7 @@ void Common::Relayout(RECT *fill, Layouter *d)
 		fill->right - fill->left,
 		d);
 
-	if (EndDeferWindowPos(dwp) == 0)
-		panic(L"error committing new common section control positions: %I32d", GetLastError());
+	return dwp;
 }
 
 // TODO find a better place for this; it's only here because it uses the TRY() macro

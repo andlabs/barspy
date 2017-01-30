@@ -175,7 +175,7 @@ public:
 	void Reflect(HWND hwnd, Process *p);
 
 	SIZE MinimumSize(Layouter *d);
-	void Relayout(RECT *fill, Layouter *d);
+	HDWP Relayout(HDWP dwp, RECT *fill, Layouter *d);
 };
 extern std::wstring drawTextFlagsString(UINT relevant);
 

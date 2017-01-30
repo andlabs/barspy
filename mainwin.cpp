@@ -37,14 +37,16 @@ void mainwinClass::relayout(void)
 	Layouter *d;
 	LONG tableWidth;
 	SIZE commonSize;
+	HDWP dwp;
 
 	if (GetClientRect(this->hwnd, &client) == 0)
 		panic(L"error getting window client rect: %I32d", GetLastError());
 	d = new Layouter(this->hwnd);
+	dwp = beginDeferWindowPos(64);
 
 	tableWidth = (client.right - client.left - 2 * d->WindowMarginX() - d->PaddingX()) / 3;
 
-	deferWindowPos(NULL, this->winlist,
+	dwp = deferWindowPos(dwp, this->winlist,
 		d->WindowMarginX(), d->WindowMarginY(),
 		tableWidth,
 		client.bottom - client.top - 2 * d->WindowMarginY(),
@@ -55,12 +57,12 @@ void mainwinClass::relayout(void)
 	client.top += d->WindowMarginY();
 	client.right -= d->WindowMarginX();
 	client.bottom -= d->WindowMarginY();
-	this->common->Relayout(&client, d);
+	dwp = this->common->Relayout(dwp, &client, d);
 	client.top += commonSize.cy + d->PaddingY();
 
 	switch (this->current) {
 	case 0:		// instructions
-		deferWindowPos(NULL, this->instructions,
+		dwp = deferWindowPos(dwp, this->instructions,
 			client.left, client.top,
 			client.right - client.left, client.bottom - client.top,
 			0);
@@ -69,12 +71,13 @@ void mainwinClass::relayout(void)
 			panic(L"error queueing redraw of instructions label: %I32d", GetLastError());
 		break;
 	case 1:		// toolbar tab
-		// TODO make a HDWP here
-		this->toolbarTab->Relayout(NULL, &client, d);
+		dwp = this->toolbarTab->Relayout(dwp, &client, d);
 		break;
 	case 2:
 		;	// TODO
 	}
+
+	endDeferWindowPos(dwp);
 	delete d;
 }
 
