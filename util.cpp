@@ -68,6 +68,16 @@ int windowClassOf(HWND hwnd, ...)
 	return -1;
 }
 
+HDWP beginDeferWindowPos(int n)
+{
+	HDWP dwp;
+
+	dwp = BeginDeferWindowPos(n);
+	if (dwp == NULL)
+		panic(L"BeginDeferWindowPos() failed: %I32d\n", GetLastError());
+	return dwp;
+}
+
 HDWP deferWindowPos(HDWP dwp, HWND hwnd, int x, int y, int width, int height, UINT flags)
 {
 	flags |= SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER;
@@ -87,4 +97,12 @@ HDWP deferWindowPos(HDWP dwp, HWND hwnd, int x, int y, int width, int height, UI
 	if (dwp == NULL)
 		panic(L"DeferWindowPos() failed: %I32d", GetLastError());
 	return dwp;
+}
+
+void endDeferWindowPos(HDWP dwp)
+{
+	if (dwp == NULL)
+		return;
+	if (EndDeferWindowPos(dwp) == 0)
+		panic(L"EndDeferWindowPos() failed: %I32d", GetLastError());
 }
