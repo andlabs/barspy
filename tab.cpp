@@ -48,6 +48,7 @@ INT_PTR CALLBACK Tab::dlgproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		WINDOWPOS *wp = (WINDOWPOS *) lParam;
 		RECT client;
 		Layouter *d;
+		HDWP dwp;
 
 		if ((wp->flags & SWP_NOSIZE) != 0)
 			return FALSE;
@@ -60,8 +61,9 @@ INT_PTR CALLBACK Tab::dlgproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		client.top += d->Y(tabMargin);
 		client.right -= d->X(tabMargin);
 		client.bottom -= d->Y(tabMargin);
-		// TODO create a HDWP for this?
-		t->RelayoutChild(NULL, hwnd, &client, d);
+		dwp = beginDeferWindowPos(64);
+		dwp = t->RelayoutChild(dwp, hwnd, &client, d);
+		endDeferWindowPos(dwp);
 		delete d;
 		// pretend the dialog hasn't handled this just in case the system needs to do something special
 		return FALSE;
@@ -99,8 +101,8 @@ HWND Tab::Add(const WCHAR *name)
 
 		ShowWindow(hwnd, SW_SHOW);
 		// and resize it
-		// TODO create a temporary HDWP here?
 		d = new Layouter(this->hwnd);
+		// no need for a HDWP; only one thing is being moved in this first iteration
 		this->relayoutCurrentPage(NULL, NULL, d);
 		delete d;
 	} else
@@ -159,8 +161,8 @@ bool Tab::HandleNotify(NMHDR *nm, LRESULT *lResult)
 		Layouter *d;
 
 		// we only resize the current page, so we have to resize the new current page once the current page changes
-		// TODO create a temporary HDWP here?
 		d = new Layouter(this->hwnd);
+		// no need for a HDWP; only one thing is being moved in this first iteration
 		this->relayoutCurrentPage(NULL, NULL, d);
 		delete d;
 	}

@@ -287,6 +287,9 @@ void Form::SetText(int id, const WCHAR *text)
 void Form::SetCheckmark(int id, HICON icon)
 {
 	setCheckmarkIcon(this->icons[id], icon);
+	// TODO why is this necessary on a Form in a dialog?
+	// TODO is this just necessary in general with a static control? I forget
+	InvalidateRect(this->icons[id], NULL, TRUE);
 }
 
 void Form::padding(Layouter *d, LONG *x, LONG *y)

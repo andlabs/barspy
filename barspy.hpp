@@ -210,6 +210,8 @@ public:
 class ToolbarTab : public Tab {
 	HWND generalTab;
 	HWND buttonsTab;
+
+	Form *generalCol1;
 public:
 	ToolbarTab(HWND parent, int id);
 	void Reflect(HWND hwnd, Process *p);
