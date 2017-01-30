@@ -109,6 +109,16 @@ HWND Tab::Add(const WCHAR *name)
 	return hwnd;
 }
 
+void Tab::Show(int cmd)
+{
+	HWND page;
+
+	ShowWindow(this->hwnd, cmd);
+	page = this->curpage();
+	if (page != NULL)
+		ShowWindow(page, cmd);
+}
+
 LRESULT Tab::curpagenum(void)
 {
 	return SendMessageW(this->hwnd, TCM_GETCURSEL, 0, 0);

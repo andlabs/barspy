@@ -197,7 +197,7 @@ class Tab {
 public:
 	Tab(HWND parent, int id);
 	HWND Add(const WCHAR *name);
-	// TODO rename the other hdr variables to nm
+	void Show(int cmd);
 	bool HandleNotify(NMHDR *nm, LRESULT *lResult);
 	// TODO MinimumSize
 	HDWP Relayout(HDWP dwp, RECT *fill, Layouter *d);

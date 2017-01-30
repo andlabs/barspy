@@ -25,8 +25,10 @@ public:
 
 	LRESULT WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void relayout(void);
-	void getDLUBase(int *dluBaseX, int *dluBaseY);
-	BOOL onNotify(NMHDR *hdr, LRESULT *lResult);
+	void setCurrent(int c);
+	void load(NMTREEVIEWW *nm);
+	BOOL onNotify(NMHDR *nm, LRESULT *lResult);
+	void createEverything(void);
 };
 
 void mainwinClass::relayout(void)
@@ -42,12 +44,11 @@ void mainwinClass::relayout(void)
 
 	tableWidth = (client.right - client.left - 2 * d->WindowMarginX() - d->PaddingX()) / 3;
 
-	if (SetWindowPos(this->winlist, NULL,
+	deferWindowPos(NULL, this->winlist,
 		d->WindowMarginX(), d->WindowMarginY(),
 		tableWidth,
-		(client.bottom - client.top - 2 * d->WindowMarginY()),
-		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER) == 0)
-		panic(L"error positioning window list: %I32d", GetLastError());
+		client.bottom - client.top - 2 * d->WindowMarginY(),
+		0);
 
 	commonSize = this->common->MinimumSize(d);
 	client.left += d->WindowMarginX() + tableWidth + d->PaddingX();
@@ -59,11 +60,10 @@ void mainwinClass::relayout(void)
 
 	switch (this->current) {
 	case 0:		// instructions
-		if (SetWindowPos(this->instructions, NULL,
+		deferWindowPos(NULL, this->instructions,
 			client.left, client.top,
 			client.right - client.left, client.bottom - client.top,
-			SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER) == 0)
-			panic(L"error positioning details view: %I32d", GetLastError());
+			0);
 		// this seems to be necessary to get the control to redraw correctly
 		if (InvalidateRect(this->instructions, NULL, TRUE) == 0)
 			panic(L"error queueing redraw of instructions label: %I32d", GetLastError());
@@ -126,29 +126,126 @@ static BOOL setWinListLabel(NMTVDISPINFOW *nm, LRESULT *lResult)
 	return TRUE;
 }
 
-BOOL mainwinClass::onNotify(NMHDR *hdr, LRESULT *lResult)
+void mainwinClass::setCurrent(int c)
 {
-	if (hdr->hwndFrom != this->winlist)
-		return FALSE;
-	switch (hdr->code) {
-	case TVN_GETDISPINFOW:
-		return setWinListLabel((NMTVDISPINFOW *) hdr, lResult);
-	case TVN_SELCHANGEDW:
-		{
-			NMTREEVIEWW *nm = (NMTREEVIEWW *) hdr;
-			HWND hwnd;
-			Process *p;
+	if (this->current == c)
+		return;
+	switch (this->current) {
+	case 0:		// instructions
+		ShowWindow(this->instructions, SW_HIDE);
+		break;
+	case 1:		// toolbar tab
+		this->toolbarTab->Show(SW_HIDE);
+		break;
+	case 2:		// rebar tab
+		;	// TODO
+	}
+	this->current = c;
+	switch (this->current) {
+	case 0:		// instructions
+		ShowWindow(this->instructions, SW_SHOW);
+		break;
+	case 1:		// toolbar tab
+		this->toolbarTab->Show(SW_SHOW);
+		break;
+	case 2:		// rebar tab
+		;	// TODO
+	}
+	this->relayout();
+}
 
-			// TODO is there a better way?
-			if (nm->itemNew.lParam == 0)break;
+void mainwinClass::load(NMTREEVIEWW *nm)
+{
+	HWND hwnd;
+	Process *p;
+	int which;
 
-			hwnd = (HWND) (nm->itemNew.lParam);
-			p = processFromHWND(hwnd);
-			this->common->Reflect(hwnd, p);
-			delete p;
+	// TODO is there a better way?
+	if (nm->itemNew.lParam == 0)return;
+
+	hwnd = (HWND) (nm->itemNew.lParam);
+	which = windowClassOf(hwnd, DESIREDCLASSES, NULL);
+
+	p = processFromHWND(hwnd);
+	this->common->Reflect(hwnd, p);
+	switch (which) {
+	case DESIREDTOOLBAR:
+		this->setCurrent(1);
+		this->toolbarTab->Reflect(hwnd, p);
+		break;
+	case DESIREDREBAR:
+		// TODO
+		break;
+	default:
+		this->setCurrent(0);
+		break;
+	}
+	delete p;
+}
+
+BOOL mainwinClass::onNotify(NMHDR *nm, LRESULT *lResult)
+{
+	if (windowClassOf(nm->hwndFrom, WC_TABCONTROLW, NULL) != -1)
+		switch (this->current) {
+		case 1:		// toolbar tab
+			if (this->toolbarTab->HandleNotify(nm, lResult))
+				return TRUE;
+			break;	// fall through to the next if (which will just return FALSE for us)
+		case 2:		// rebar tab
+			;	// TODO
 		}
+	if (nm->hwndFrom != this->winlist)
+		return FALSE;
+	switch (nm->code) {
+	case TVN_GETDISPINFOW:
+		return setWinListLabel((NMTVDISPINFOW *) nm, lResult);
+	case TVN_SELCHANGEDW:
+		this->load((NMTREEVIEWW *) nm);
+		break;		// just do the default thing; the return value doesn't matter anyway
 	}
 	return FALSE;
+}
+
+void mainwinClass::createEverything(void)
+{
+	// window list
+	this->winlist = CreateWindowExW(WS_EX_CLIENTEDGE,
+		WC_TREEVIEWW, L"",
+		WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL | TVS_DISABLEDRAGDROP | TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_NONEVENHEIGHT | TVS_SHOWSELALWAYS,
+		0, 0, 100, 100,
+		this->hwnd, (HMENU) 101, hInstance, NULL);
+	if (this->winlist == NULL)
+		panic(L"error creating window list: %I32d", GetLastError());
+
+	// common items
+	this->common = new Common(this->hwnd, 200);
+	this->common->Reset();
+
+	// content
+	this->current = 0;		// instructions
+
+	// instructions (current == 0)
+	this->instructions = CreateWindowExW(WS_EX_CLIENTEDGE,//TODO 0,
+		L"STATIC", L"Click on a boldface item at left to begin.",
+		WS_CHILD | WS_VISIBLE | SS_CENTER | SS_CENTERIMAGE | SS_NOPREFIX,
+		0, 0, 100, 100,
+		this->hwnd, (HMENU) 102, hInstance, NULL);
+	if (this->instructions == NULL)
+		panic(L"error creating instructions label: %I32d", GetLastError());
+	SendMessageW(this->instructions, WM_SETFONT, (WPARAM) hMessageFont, (LPARAM) TRUE);
+
+	// toolbar tab (current == 1)
+	this->toolbarTab = new ToolbarTab(this->hwnd, 200);
+	this->toolbarTab->Show(SW_HIDE);
+
+	// rebar tab (current == 2)
+	// TODO
+
+	// and set up the initial state
+	enumWindowTree(this->winlist, addWindow);
+	this->relayout();
+	// and start using the scroll wheel properly
+	SetFocus(this->winlist);
 }
 
 LRESULT mainwinClass::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -158,31 +255,7 @@ LRESULT mainwinClass::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	switch (uMsg) {
 	case WM_CREATE:
-		// TODO clean all this up
-		this->winlist = CreateWindowExW(WS_EX_CLIENTEDGE,
-			WC_TREEVIEWW, L"",
-			WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL | TVS_DISABLEDRAGDROP | TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_NONEVENHEIGHT | TVS_SHOWSELALWAYS,
-			0, 0, 100, 100,
-			this->hwnd, (HMENU) 101, hInstance, NULL);
-		if (this->winlist == NULL)
-			panic(L"error creating window list: %I32d", GetLastError());
-		this->common = new Common(this->hwnd, 200);
-		this->common->Reset();
-		this->instructions = CreateWindowExW(WS_EX_CLIENTEDGE,//TODO 0,
-			L"STATIC", L"Click on a boldface item at left to begin.",
-			WS_CHILD | WS_VISIBLE | SS_CENTER | SS_CENTERIMAGE | SS_NOPREFIX,
-			0, 0, 100, 100,
-			this->hwnd, (HMENU) 102, hInstance, NULL);
-		if (this->instructions == NULL)
-			panic(L"error creating instructions label: %I32d", GetLastError());
-		SendMessageW(this->instructions, WM_SETFONT, (WPARAM) hMessageFont, (LPARAM) TRUE);
-		enumWindowTree(this->winlist, addWindow);
-		this->current = 0;
-this->current = 1;
-this->toolbarTab = new ToolbarTab(this->hwnd, 200);
-		this->relayout();
-		// and start using the scroll wheel properly
-		SetFocus(this->winlist);
+		this->createEverything();
 		break;
 	case WM_WINDOWPOSCHANGED:
 		if ((wp->flags & SWP_NOSIZE) != 0)
