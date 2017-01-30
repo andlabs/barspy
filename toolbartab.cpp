@@ -123,6 +123,7 @@ void ToolbarTab::Reflect(HWND hwnd, Process *p)
 	// there is no TB_GETDRAWTEXTFLAGS, but TB_SETDRAWTEXTFLAGS returns the previous value
 	// it's not documented whether passing two zeroes will clear all flags or not (as it would with other similar messages in comctl32.dll)
 	// so instead, let's set it to zero and then set it back immediately afterward
+	// TODO this still isn't right; does it just return 0 until initially set, at which point text drawing changes?
 	all1s = ~((DWORD) 0);
 	dw = (DWORD) SendMessageW(hwnd, TB_SETDRAWTEXTFLAGS, (WPARAM) all1s, 0);
 	SendMessageW(hwnd, TB_SETDRAWTEXTFLAGS, (WPARAM) all1s, (LPARAM) dw);
