@@ -210,6 +210,7 @@ public:
 class ToolbarTab : public Tab {
 	HWND generalTab;
 	HWND buttonsTab;
+	HWND imagelistTab;
 
 	Form *generalCol1;
 	Form *generalCol2;

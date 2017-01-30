@@ -24,6 +24,7 @@ ToolbarTab::ToolbarTab(HWND parent, int id) :
 {
 	this->generalTab = this->Add(L"General");
 	this->buttonsTab = this->Add(L"Buttons");
+	this->imagelistTab = this->Add(L"Image Lists");
 
 	this->generalCol1 = new Form(this->generalTab);
 	this->generalCol1->SetID(100);
