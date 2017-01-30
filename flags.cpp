@@ -77,3 +77,41 @@ std::wstring toolbarExStyleString(HWND toolbar)
 		TRY(TBSTYLE_EX_DOUBLEBUFFER)
 	});
 }
+
+std::wstring toolbarBitmapFlagsString(HWND toolbar)
+{
+	DWORD v;
+
+	v = (DWORD) SendMessageW(toolbar, TB_GETBITMAPFLAGS, 0, 0);
+	return mkstring(v, TRYHEAD {
+		TRY(TBBF_LARGE)
+	});
+}
+
+std::wstring drawTextFlagsString(DWORD v)
+{
+	return mkstring(v, TRYHEAD {
+		TRY(DT_CENTER)
+		TRY(DT_RIGHT)
+		TRY(DT_VCENTER)
+		TRY(DT_BOTTOM)
+		TRY(DT_WORDBREAK)
+		TRY(DT_SINGLELINE)
+		TRY(DT_EXPANDTABS)
+		TRY(DT_TABSTOP)
+		TRY(DT_NOCLIP)
+		TRY(DT_EXTERNALLEADING)
+		TRY(DT_CALCRECT)
+		TRY(DT_NOPREFIX)
+		TRY(DT_INTERNAL)
+		TRY(DT_EDITCONTROL)
+		TRY(DT_PATH_ELLIPSIS)
+		TRY(DT_END_ELLIPSIS)
+		TRY(DT_MODIFYSTRING)
+		TRY(DT_RTLREADING)
+		TRY(DT_WORD_ELLIPSIS)
+		TRY(DT_NOFULLWIDTHCHARBREAK)
+		TRY(DT_HIDEPREFIX)
+		TRY(DT_PREFIXONLY)
+	});
+}

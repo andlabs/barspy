@@ -212,6 +212,7 @@ class ToolbarTab : public Tab {
 	HWND buttonsTab;
 
 	Form *generalCol1;
+	Form *generalCol2;
 public:
 	ToolbarTab(HWND parent, int id);
 	void Reflect(HWND hwnd, Process *p);
@@ -221,3 +222,5 @@ public:
 // flags.cpp
 extern std::wstring toolbarStyleString(HWND toolbar);
 extern std::wstring toolbarExStyleString(HWND toolbar);
+extern std::wstring toolbarBitmapFlagsString(HWND toolbar);
+extern std::wstring drawTextFlagsString(DWORD v);
