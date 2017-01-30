@@ -13,6 +13,7 @@ CXXFILES = \
 	mainwin.cpp \
 	panic.cpp \
 	process.cpp \
+	tab.cpp \
 	util.cpp
 
 HFILES = \
