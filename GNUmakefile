@@ -14,6 +14,7 @@ CXXFILES = \
 	panic.cpp \
 	process.cpp \
 	tab.cpp \
+	toolbartab.cpp \
 	util.cpp
 
 HFILES = \

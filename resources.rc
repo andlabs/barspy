@@ -12,7 +12,7 @@ iconNo ICON "icons\\no.ico"
 iconUnknown ICON "icons\\unknown.ico"
 
 // this is the dialog template used by tab pages; see tab.cpp for details
-tabPageDIalogTemplate DIALOGEX 0, 0, 100, 100
+tabPageDialogTemplate DIALOGEX 0, 0, 100, 100
 STYLE DS_CONTROL | WS_CHILD | WS_VISIBLE
 EXSTYLE WS_EX_CONTROLPARENT
 BEGIN

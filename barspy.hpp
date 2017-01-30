@@ -182,3 +182,34 @@ extern void getWindowTheme(HWND hwnd, Process *p, WCHAR **pszSubAppName, WCHAR *
 
 // dllgetver.cpp
 extern WCHAR *getDLLVersion(HWND hwnd, Process *p);
+
+// tab.cpp
+class Tab {
+	HWND hwnd;
+	HWND parent;
+	int id;
+	std::vector<HWND> pages;
+	void rearrangeZOrder(void);
+	static INT_PTR CALLBACK dlgproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	LRESULT curpagenum(void);
+	HWND curpage(void);
+	HDWP relayoutCurrentPage(HDWP dwp, RECT *fill, Layouter *d);
+public:
+	Tab(HWND parent, int id);
+	HWND Add(const WCHAR *name);
+	// TODO rename the other hdr variables to nm
+	bool HandleNotify(NMHDR *nm, LRESULT *lResult);
+	// TODO MinimumSize
+	HDWP Relayout(HDWP dwp, RECT *fill, Layouter *d);
+	virtual HDWP RelayoutChild(HDWP dwp, HWND page, RECT *fill, Layouter *d) = 0;
+};
+
+// toolbartab.cpp
+class ToolbarTab : public Tab {
+	HWND generalTab;
+	HWND buttonsTab;
+public:
+	ToolbarTab(HWND parent, int id);
+	void Reflect(HWND hwnd, Process *p);
+	virtual HDWP RelayoutChild(HDWP dwp, HWND page, RECT *fill, Layouter *d);
+};

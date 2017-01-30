@@ -6,9 +6,12 @@ HWND mainwin = NULL;
 class mainwinClass {
 	HWND hwnd;
 	HWND winlist;
-	HWND instructions;
+
 	Common *common;
-	HWND currentDetails;
+
+	int current;
+	HWND instructions;
+	ToolbarTab *toolbarTab;
 public:
 	mainwinClass(HWND h)
 	{
@@ -54,16 +57,24 @@ void mainwinClass::relayout(void)
 	this->common->Relayout(&client, d);
 	client.top += commonSize.cy + d->PaddingY();
 
-	if (SetWindowPos(this->currentDetails, NULL,
-		client.left, client.top,
-		client.right - client.left, client.bottom - client.top,
-		SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER) == 0)
-		panic(L"error positioning details view: %I32d", GetLastError());
-	// this seems to be necessary to get the control to redraw correctly
-	if (this->currentDetails == this->instructions)
+	switch (this->current) {
+	case 0:		// instructions
+		if (SetWindowPos(this->instructions, NULL,
+			client.left, client.top,
+			client.right - client.left, client.bottom - client.top,
+			SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER) == 0)
+			panic(L"error positioning details view: %I32d", GetLastError());
+		// this seems to be necessary to get the control to redraw correctly
 		if (InvalidateRect(this->instructions, NULL, TRUE) == 0)
 			panic(L"error queueing redraw of instructions label: %I32d", GetLastError());
-
+		break;
+	case 1:		// toolbar tab
+		// TODO make a HDWP here
+		this->toolbarTab->Relayout(NULL, &client, d);
+		break;
+	case 2:
+		;	// TODO
+	}
 	delete d;
 }
 
@@ -147,6 +158,7 @@ LRESULT mainwinClass::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	switch (uMsg) {
 	case WM_CREATE:
+		// TODO clean all this up
 		this->winlist = CreateWindowExW(WS_EX_CLIENTEDGE,
 			WC_TREEVIEWW, L"",
 			WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL | TVS_DISABLEDRAGDROP | TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_NONEVENHEIGHT | TVS_SHOWSELALWAYS,
@@ -165,7 +177,9 @@ LRESULT mainwinClass::WndProc(UINT uMsg, WPARAM wParam, LPARAM lParam)
 			panic(L"error creating instructions label: %I32d", GetLastError());
 		SendMessageW(this->instructions, WM_SETFONT, (WPARAM) hMessageFont, (LPARAM) TRUE);
 		enumWindowTree(this->winlist, addWindow);
-		this->currentDetails = this->instructions;
+		this->current = 0;
+this->current = 1;
+this->toolbarTab = new ToolbarTab(this->hwnd, 200);
 		this->relayout();
 		// and start using the scroll wheel properly
 		SetFocus(this->winlist);
