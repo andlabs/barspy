@@ -18,6 +18,8 @@ static BOOL CALLBACK ewtEach(HWND hwnd, LPARAM lParam)
 	HWND parent;
 	HTREEITEM parentNode, newNode;
 
+	// this is what Catch-22's WinSpy does
+	// TODO I forget if it did anything else
 	parent = GetAncestor(hwnd, GA_PARENT);
 	if (parent == GetDesktopWindow())
 		parent = NULL;
