@@ -39,5 +39,7 @@
 
 #include <vector>
 #include <map>
+#include <string>
 #include <sstream>
+#include <functional>
 #endif

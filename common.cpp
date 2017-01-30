@@ -48,65 +48,6 @@ void Common::Reset(void)
 	this->styles.SetText(stylesExStyles, L"N/A");
 }
 
-#define TRY(bit) if ((relevant & bit) != 0) { ss << prefix << #bit; prefix = L" | "; relevant &= ~(bit); }
-#define TRYCC \
-	TRY(CCS_TOP) \
-	TRY(CCS_NOMOVEY) \
-	TRY(CCS_NORESIZE) \
-	TRY(CCS_NOPARENTALIGN) \
-	TRY(CCS_ADJUSTABLE) \
-	TRY(CCS_NODIVIDER) \
-	TRY(CCS_VERT)
-
-static std::wstring toolbarStyleString(HWND toolbar)
-{
-	uint16_t relevant;
-	const WCHAR *prefix = L"";
-	std::wostringstream ss;
-
-	relevant = (uint16_t) (GetWindowLongPtrW(toolbar, GWL_STYLE) & 0xFFFF);
-	TRYCC
-	TRY(TBSTYLE_TOOLTIPS)
-	TRY(TBSTYLE_WRAPABLE)
-	TRY(TBSTYLE_ALTDRAG)
-	TRY(TBSTYLE_FLAT)
-	TRY(TBSTYLE_LIST)
-	TRY(TBSTYLE_CUSTOMERASE)
-	TRY(TBSTYLE_REGISTERDROP)
-	TRY(TBSTYLE_TRANSPARENT)
-	if (relevant != 0) {
-		ss << prefix << L"0x";
-		ss.fill(L'0');
-		ss.setf(ss.hex | ss.uppercase, ss.basefield | ss.uppercase);
-		ss.width(4);
-		ss << relevant;
-	}
-	return ss.str();
-}
-
-static std::wstring toolbarExStyleString(HWND toolbar)
-{
-	DWORD relevant;
-	const WCHAR *prefix = L"";
-	std::wostringstream ss;
-
-	relevant = (DWORD) SendMessageW(toolbar, TB_GETEXTENDEDSTYLE, 0, 0);
-	TRY(TBSTYLE_EX_DRAWDDARROWS)
-	TRY(TBSTYLE_EX_MULTICOLUMN)
-	TRY(TBSTYLE_EX_VERTICAL)
-	TRY(TBSTYLE_EX_MIXEDBUTTONS)
-	TRY(TBSTYLE_EX_HIDECLIPPEDBUTTONS)
-	TRY(TBSTYLE_EX_DOUBLEBUFFER)
-	if (relevant != 0) {
-		ss << prefix << L"0x";
-		ss.fill(L'0');
-		ss.setf(ss.hex | ss.uppercase, ss.basefield | ss.uppercase);
-		ss.width(8);
-		ss << relevant;
-	}
-	return ss.str();
-}
-
 static WCHAR *nullCopy(void)
 {
 	WCHAR *s;
@@ -232,7 +173,8 @@ HDWP Common::Relayout(HDWP dwp, RECT *fill, Layouter *d)
 	return dwp;
 }
 
-// TODO find a better place for this; it's only here because it uses the TRY() macro
+#if 0
+// TODO move to flags.cpp when the time is right
 std::wstring drawTextFlagsString(UINT relevant)
 {
 	const WCHAR *prefix = L"";
@@ -269,3 +211,4 @@ std::wstring drawTextFlagsString(UINT relevant)
 	}
 	return ss.str();
 }
+#endif

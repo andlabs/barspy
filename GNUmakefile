@@ -7,6 +7,7 @@ CXXFILES = \
 	common.cpp \
 	dllgetver.cpp \
 	enum.cpp \
+	flags.cpp \
 	gettheme.cpp \
 	layout.cpp \
 	main.cpp \

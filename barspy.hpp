@@ -217,3 +217,7 @@ public:
 	void Reflect(HWND hwnd, Process *p);
 	virtual HDWP RelayoutChild(HDWP dwp, HWND page, RECT *fill, Layouter *d);
 };
+
+// flags.cpp
+extern std::wstring toolbarStyleString(HWND toolbar);
+extern std::wstring toolbarExStyleString(HWND toolbar);
