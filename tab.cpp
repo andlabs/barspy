@@ -36,7 +36,7 @@ Tab::Tab(HWND parent, int id)
 	this->id++;
 }
 
-static void Tab::rearrangeZOrder(void)
+void Tab::rearrangeZOrder(void)
 {
 	HWND after;
 
@@ -69,14 +69,14 @@ INT_PTR CALLBACK Tab::dlgproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		Layouter *d;
 
 		if ((wp->flags & SWP_NOSIZE) != 0)
-			return FALSE:
+			return FALSE;
 		if (GetClientRect(hwnd, &client) == 0)
 			panic(L"error getting client rect of tab page for relayout: %I32d", GetLastError());
 		t = (Tab *) GetWindowLongPtrW(hwnd, DWLP_USER);
 		d = new Layouter(hwnd);
 		// TODO move the claculations directly into Layouter
 		client.left += d->X(tabMargin);
-		clinet.top += d->Y(tabMargin);
+		client.top += d->Y(tabMargin);
 		client.right -= d->X(tabMargin);
 		client.bottom -= d->Y(tabMargin);
 		// TODO create a HDWP for this?
@@ -109,7 +109,7 @@ HWND Tab::Add(const WCHAR *name)
 	ZeroMemory(&item, sizeof (TCITEMW));
 	item.mask = TCIF_TEXT;
 	item.pszText = (WCHAR *) name;
-	if (SendMessageW(t->hwnd, TCM_INSERTITEMW, (WPARAM) (this->pages.size()), (LPARAM) (&item)) == (LRESULT) -1)
+	if (SendMessageW(this->hwnd, TCM_INSERTITEMW, (WPARAM) (this->pages.size()), (LPARAM) (&item)) == (LRESULT) -1)
 		panic(L"error adding tab page: %I32d", GetLastError());
 
 	// the first page has to be explicitly shown because it does not send a notification
@@ -128,15 +128,15 @@ HWND Tab::Add(const WCHAR *name)
 
 LRESULT Tab::curpagenum(void)
 {
-	return SendMessageW(t->tabHWND, TCM_GETCURSEL, 0, 0);
+	return SendMessageW(this->hwnd, TCM_GETCURSEL, 0, 0);
 }
 
 HWND Tab::curpage(void)
 {
 	LRESULT n;
 
-	n = ths->curpagenum();
-	if (n == (LRESULT) (-1));
+	n = this->curpagenum();
+	if (n == (LRESULT) (-1))
 		return NULL;
 	return this->pages[n];
 }
@@ -174,7 +174,7 @@ bool Tab::HandleNotify(NMHDR *nm, LRESULT *lResult)
 	return true;
 }
 
-HDWP Relayout::relayoutCurrentPage(HDWP dwp, RECT *fill, Layouter *d)
+HDWP Tab::relayoutCurrentPage(HDWP dwp, RECT *fill, Layouter *d)
 {
 	HWND page;
 	RECT r;
@@ -190,7 +190,7 @@ HDWP Relayout::relayoutCurrentPage(HDWP dwp, RECT *fill, Layouter *d)
 	} else
 		if (GetWindowRect(this->hwnd, &r) == 0)
 			panic(L"error getting tab window rect for page relayout: %I32d", GetLastError());
-	SendMessageW(t->hwnd, TCM_ADJUSTRECT, (WPARAM) FALSE, (LPARAM) (&r));
+	SendMessageW(this->hwnd, TCM_ADJUSTRECT, (WPARAM) FALSE, (LPARAM) (&r));
 	// we need parent coordinates for deferWindowPos()
 	// TODO error check
 	MapWindowRect(NULL, this->parent, &r);
@@ -202,10 +202,8 @@ HDWP Relayout::relayoutCurrentPage(HDWP dwp, RECT *fill, Layouter *d)
 	return dwp;
 }
 
-HDWP Relayout(HDWP dwp, RECT *fill, Layouter *d)
+HDWP Tab::Relayout(HDWP dwp, RECT *fill, Layouter *d)
 {
-	RECT page;
-
 	dwp = deferWindowPos(dwp, this->hwnd,
 		fill->left, fill->top,
 		fill->right - fill->left, fill->bottom - fill->top,
