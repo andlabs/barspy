@@ -5,10 +5,10 @@ OUT = barspy.exe
 CXXFILES = \
 	checkmark.cpp \
 	common.cpp \
-	dllgetver.cpp \
+	dllgetversion.cpp \
 	enum.cpp \
 	flags.cpp \
-	gettheme.cpp \
+	getwindowtheme.cpp \
 	layout.cpp \
 	main.cpp \
 	mainwin.cpp \

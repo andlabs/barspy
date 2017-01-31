@@ -181,10 +181,10 @@ public:
 };
 extern std::wstring drawTextFlagsString(UINT relevant);
 
-// gettheme.cpp
+// getwindowtheme.cpp
 extern void getWindowTheme(HWND hwnd, Process *p, WCHAR **pszSubAppName, WCHAR **pszSubIdList);
 
-// dllgetver.cpp
+// dllgetversion.cpp
 extern WCHAR *getDLLVersion(HWND hwnd, Process *p);
 
 // tab.cpp
