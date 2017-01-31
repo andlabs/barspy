@@ -1,1 +1,1 @@
-- nothing handles destruction properly
+- nothing handles destruction properly; the program just quits and lets the OS clean up after it, which is probably not good (but TODO see that one raymond chen article)
