@@ -106,3 +106,15 @@ void endDeferWindowPos(HDWP dwp)
 	if (EndDeferWindowPos(dwp) == 0)
 		panic(L"EndDeferWindowPos() failed: %I32d", GetLastError());
 }
+
+std::wstring colorToString(COLORREF color)
+{
+	uint8_t r, g, b;
+	std::wostringstream ss;
+
+	r = GetRValue(color);
+	g = GetGValue(color);
+	b = GetBValue(color);
+	ss << L"(" << r << L", " << g << L", " << b << L")";
+	return ss.str();
+}

@@ -31,6 +31,7 @@ extern int windowClassOf(HWND hwnd, ...);
 extern HDWP beginDeferWindowPos(int n);
 extern HDWP deferWindowPos(HDWP dwp, HWND hwnd, int x, int y, int width, int height, UINT flags);
 extern void endDeferWindowPos(HDWP dwp);
+extern std::wstring colorToString(COLORREF color);
 
 // enum.cpp
 extern void enumWindowTree(HWND treeview, HTREEITEM (*f)(HWND treeview, HWND window, HTREEITEM parent));
@@ -204,6 +205,7 @@ public:
 	// TODO MinimumSize
 	HDWP Relayout(HDWP dwp, RECT *fill, Layouter *d);
 	virtual HDWP RelayoutChild(HDWP dwp, HWND page, RECT *fill, Layouter *d) = 0;
+	virtual bool OnSysColorStatic(HDC dc, HWND hwnd, HBRUSH *hbrush) = 0;
 };
 
 // toolbartab.cpp
@@ -214,10 +216,13 @@ class ToolbarTab : public Tab {
 
 	Form *generalCol1;
 	Form *generalCol2;
+
+	HBRUSH insertionPointBrush;
 public:
 	ToolbarTab(HWND parent, int id);
 	void Reflect(HWND hwnd, Process *p);
 	virtual HDWP RelayoutChild(HDWP dwp, HWND page, RECT *fill, Layouter *d);
+	virtual bool OnSysColorStatic(HDC dc, HWND hwnd, HBRUSH *hbrush);
 };
 
 // flags.cpp

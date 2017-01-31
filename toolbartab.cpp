@@ -48,12 +48,15 @@ ToolbarTab::ToolbarTab(HWND parent, int id) :
 	this->generalCol2->Add(L"First Button Indent");
 	this->generalCol2->Add(L"DrawText() Flags");
 	// TODO TB_SETBOUNDINGSIZE
+
+	this->insertionPointBrush = NULL;
 }
 
 void ToolbarTab::Reflect(HWND hwnd, Process *p)
 {
 	HICON iconToUse;
 	DWORD dw, all1s;
+	COLORREF color;
 	INT intval;
 	HWND hwval;
 	RECT wr, cr;
@@ -77,8 +80,16 @@ void ToolbarTab::Reflect(HWND hwnd, Process *p)
 	this->generalCol1->SetText(gen1ButtonHighlight, L"TODO");
 	this->generalCol1->SetText(gen1ButtonShadow, L"TODO");
 
-	// TODO TB_GETINSERTMARKCOLOR
-	this->generalCol1->SetText(gen1InsertionColor, L"TODO");
+	color = (COLORREF) SendMessageW(hwnd, TB_GETINSERTMARKCOLOR, 0, 0);
+	s = colorToString(color);
+	this->generalCol1->SetText(gen1InsertionColor, s.c_str());
+	if (this->insertionPointBrush != NULL)
+		if (DeleteObject(this->insertionPointBrush) == 0)
+			panic(L"error deleting old insertion point brush: %I32d", GetLastError());
+	this->insertionPointBrush = CreateSolidBrush(color);
+	if (this->insertionPointBrush == NULL)
+		panic(L"error creating new insertion point brush: %I32d", GetLastError());
+	// TODO redraw the field now since its color has changed
 
 	// TODO TB_GETMAXSIZE
 	// requires injection
@@ -146,4 +157,9 @@ HDWP ToolbarTab::RelayoutChild(HDWP dwp, HWND page, RECT *fill, Layouter *d)
 		d);
 
 	return dwp;
+}
+
+bool ToolbarTab::OnSysColorStatic(HDC dc, HWND hwnd, HBRUSH *hbrush)
+{
+	return false;
 }
