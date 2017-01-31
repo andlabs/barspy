@@ -114,6 +114,7 @@ public:
 	HDWP Relayout(HDWP dwp, LONG x, LONG y, Layouter *d);
 	HDWP RelayoutWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *d);
 	HDWP RelayoutEditWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *d);
+	int WhichRowIs(HWND edit);
 };
 class Chain {
 	HWND parent;
@@ -205,7 +206,7 @@ public:
 	// TODO MinimumSize
 	HDWP Relayout(HDWP dwp, RECT *fill, Layouter *d);
 	virtual HDWP RelayoutChild(HDWP dwp, HWND page, RECT *fill, Layouter *d) = 0;
-	virtual bool OnSysColorStatic(HDC dc, HWND hwnd, HBRUSH *hbrush) = 0;
+	virtual bool OnCtlColorStatic(HDC dc, HWND hwnd, HBRUSH *brush) = 0;
 };
 
 // toolbartab.cpp
@@ -222,7 +223,7 @@ public:
 	ToolbarTab(HWND parent, int id);
 	void Reflect(HWND hwnd, Process *p);
 	virtual HDWP RelayoutChild(HDWP dwp, HWND page, RECT *fill, Layouter *d);
-	virtual bool OnSysColorStatic(HDC dc, HWND hwnd, HBRUSH *hbrush);
+	virtual bool OnCtlColorStatic(HDC dc, HWND hwnd, HBRUSH *brush);
 };
 
 // flags.cpp

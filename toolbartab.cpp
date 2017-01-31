@@ -159,7 +159,12 @@ HDWP ToolbarTab::RelayoutChild(HDWP dwp, HWND page, RECT *fill, Layouter *d)
 	return dwp;
 }
 
-bool ToolbarTab::OnSysColorStatic(HDC dc, HWND hwnd, HBRUSH *hbrush)
+bool ToolbarTab::OnCtlColorStatic(HDC dc, HWND hwnd, HBRUSH *brush)
 {
+	switch (this->generalCol1->WhichRowIs(hwnd)) {
+	case gen1InsertionColor:
+		*brush = this->insertionPointBrush;
+		return true;
+	}
 	return false;
 }

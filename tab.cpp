@@ -68,6 +68,14 @@ INT_PTR CALLBACK Tab::dlgproc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 		// pretend the dialog hasn't handled this just in case the system needs to do something special
 		return FALSE;
 	}
+	if (uMsg == WM_CTLCOLORSTATIC) {
+		HBRUSH brush;
+
+		t = (Tab *) GetWindowLongPtrW(hwnd, DWLP_USER);
+		if (t->OnCtlColorStatic((HDC) wParam, (HWND) lParam, &brush))
+			return (INT_PTR) brush;
+		return FALSE;
+	}
 	// TODO WM_PRINTCLIENT unthemed hack?
 	return FALSE;
 }

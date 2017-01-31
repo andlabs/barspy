@@ -410,6 +410,17 @@ HDWP Form::RelayoutEditWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *d)
 	return this->relayout(dwp, x, y, true, width, true, d);
 }
 
+// TODO avoid needing the -1 here
+int Form::WhichRowIs(HWND edit)
+{
+	int i;
+
+	for (i = 0; i < (int) (this->edits.size()); i++)
+		if (this->edits[i] == edit)
+			return i;
+	return -1;
+}
+
 Chain::Chain(HWND parent, int id, int minEditWidth)
 {
 	this->parent = parent;
