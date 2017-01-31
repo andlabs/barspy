@@ -34,58 +34,30 @@ static const uint8_t callAMD64[] = {
 };
 static const size_t nCallAMD64 = 97;
 
-struct archInfo {
-	const uint8_t *call;
-	size_t nCall;
-	size_t structSize;
-	size_t offDGV;
-	size_t sizeDGV;
-	size_t offMajor;
-	size_t sizeMajor;
-	size_t offMinor;
-	size_t sizeMinor;
-	size_t offHRESULT;
-	size_t sizeHRESULT;
-};
-
-const struct archInfo archInfo[] = {
-#define arch386 0
-	{
-		call386, nCall386,
-		16,
-		0, 4,
-		4, 4,
-		8, 4,
-		12, 4,
-	},
-#define archAMD64 1
-	{
-		callAMD64, nCallAMD64,
-		20,
-		0, 8,
-		8, 4,
-		12, 4,
-		16, 4,
-	},
-};
-
-static WCHAR *runThread(Process *p, const struct archInfo *ai, void *pCode, void *pData)
+static ProcessHelper *mkProcessHelper(Process *p)
 {
-	HANDLE hThread;
+	ProcessHelper *ph;
+
+	ph = new ProcessHelper(p);
+	ph->SetCode(call386, nCall386, callAMD64, nCallAMD64);
+	ph->AddField("DllGetVersionPtr", fieldPointer, 0, 4, 0, 8);
+	ph->AddField("major", fieldDWORD, 4, 4, 8, 4);
+	ph->AddField("minor", fieldDWORD, 8, 4, 12, 4);
+	ph->AddField("hr", fieldHRESULT, 12, 4, 16, 4);
+	return ph;
+}
+
+static WCHAR *runThread(ProcessHelper *ph)
+{
 	WCHAR *out;
 	DWORD major, minor;
 	HRESULT hr;
 
-	hThread = p->CreateThread(pCode, pData);
-	// TODO switch to MsgWaitForMultipleObjectsEx()? this code assumes it is atomic with regards to the UI
-	if (WaitForSingleObject(hThread, INFINITE) == WAIT_FAILED)
-		panic(L"error waiting for process string thread to run: %I32d", GetLastError());
-	if (CloseHandle(hThread) == 0)
-		panic(L"error closing thread: %I32d", GetLastError());
+	ph->Run();
 
-	p->Read(pData, ai->offMajor, &major, ai->sizeMajor);
-	p->Read(pData, ai->offMinor, &minor, ai->sizeMinor);
-	p->Read(pData, ai->offHRESULT, &hr, ai->sizeHRESULT);
+	ph->ReadField("major", &major);
+	ph->ReadField("minor", &minor);
+	ph->ReadField("hr", &hr);
 
 	out = new WCHAR[32];
 	// TODO error checks from StringCchPrintfW()
@@ -99,46 +71,18 @@ static WCHAR *runThread(Process *p, const struct archInfo *ai, void *pCode, void
 
 WCHAR *getDLLVersion(HWND hwnd, Process *p)
 {
-	int arch;
-	const struct archInfo *ai;
-	LPVOID pCode, pData;
+	ProcessHelper *ph;
 	void *pcomctl32;
-	uint32_t off32;
-	uint64_t off64;
-	void *off;
 	WCHAR *ret;
 
-	arch = arch386;
-	if (p->Is64Bit())
-		arch = archAMD64;
-	ai = &(archInfo[arch]);
-
-	pCode = p->AllocBlock(ai->nCall);
-	p->Write(pCode, 0, ai->call, ai->nCall);
-	p->MakeExecutable(pCode, ai->nCall);
-
-	pData = p->AllocBlock(ai->structSize);
+	ph = mkProcessHelper(p);
 
 	// use the comctl32.dll that was actually used for this control
 	// SxS and isolation awareness means we can load multiple versions of comctl32.dll into a process at once
 	pcomctl32 = (void *) GetClassLongPtrW(hwnd, GCLP_HMODULE);
+	ph->WriteFieldProcAddress("DllGetVersionPtr", pcomctl32, "DllGetVersion");
 
-	off = p->GetProcAddress(pcomctl32, "DllGetVersion");
-	switch (arch) {
-	case arch386:
-		off32 = (uint32_t) off;
-		off = &off32;
-		break;
-	case archAMD64:
-		off64 = (uint64_t) off;
-		off = &off64;
-		break;
-	}
-	p->Write(pData, ai->offDGV, off, ai->sizeDGV);
-
-	ret = runThread(p, ai, pCode, pData);
-
-	p->FreeBlock(pData);
-	p->FreeBlock(pCode);
+	ret = runThread(ph);
+	delete ph;
 	return ret;
 }
