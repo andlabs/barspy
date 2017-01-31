@@ -259,6 +259,9 @@ public:
 	virtual bool OnCtlColorStatic(HDC dc, HWND hwnd, HBRUSH *brush);
 };
 
+// toolbargeneral.cpp
+extern ProcessHelper *getToolbarGeneral(HWND hwnd, Process *p);
+
 // flags.cpp
 extern std::wstring toolbarStyleString(HWND toolbar);
 extern std::wstring toolbarExStyleString(HWND toolbar);

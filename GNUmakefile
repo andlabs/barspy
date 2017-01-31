@@ -16,6 +16,7 @@ CXXFILES = \
 	process.cpp \
 	prochelper.cpp \
 	tab.cpp \
+	toolbargeneral.cpp \
 	toolbartab.cpp \
 	util.cpp
 

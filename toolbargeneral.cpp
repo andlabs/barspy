@@ -119,113 +119,19 @@ static ProcessHelper *mkProcessHelper(Process *p)
 	return ph;
 }
 
-// TODO continue here
-
-static WCHAR *runThread(Process *p, const struct archInfo *ai, void *pCode, void *pData)
+ProcessHelper *getToolbarGeneral(HWND hwnd, Process *p)
 {
-	HANDLE hThread;
-	WCHAR *out;
-	DWORD ret;
-	DWORD le;
+	ProcessHelper *ph;
+	void *puser32;
 
-	hThread = p->CreateThread(pCode, pData);
-	// TODO switch to MsgWaitForMultipleObjectsEx()? this code assumes it is atomic with regards to the UI
-	if (WaitForSingleObject(hThread, INFINITE) == WAIT_FAILED)
-		panic(L"error waiting for process string thread to run: %I32d", GetLastError());
-	if (CloseHandle(hThread) == 0)
-		panic(L"error closing thread: %I32d", GetLastError());
+	ph = mkProcessHelper(p);
 
-	p->Read(pData, ai->offRet, &ret, ai->sizeRet);
-	p->Read(pData, ai->offLastError, &le, ai->sizeLastError);
-	// TODO make sure this logic is right
-	if (ret == 0 && le != ERROR_SUCCESS)
-		return NULL;
-	out = new WCHAR[ret + 1];
-	p->Read(pData, ai->structSize, out, (ret + 1) * sizeof (WCHAR));
-	return out;
-}
+	// TODO add error checks to all these calls
+	puser32 = p->GetModuleBase(L"kernel32.dll");
 
-void getWindowTheme(HWND hwnd, Process *p, WCHAR **pszSubAppName, WCHAR **pszSubIdList)
-{
-	HANDLE hSubAppName, hSubIdList;
-	ATOM atom;
-	int arch;
-	const struct archInfo *ai;
-	LPVOID pCode, pData;
-	void *pkernel32;
-	uint32_t off32;
-	uint64_t off64;
-	void *off;
+	ph->WriteFieldProcAddress("SendMessageWPtr", puser32, "SendMessageW");
+	ph->WriteFieldPointer("hwnd", hwnd);
 
-	*pszSubAppName = NULL;
-	*pszSubIdList = NULL;
-	hSubAppName = GetPropW(hwnd, MAKEINTATOM(PROP_SUBAPPNAME));
-	hSubIdList = GetProp(hwnd, MAKEINTATOM(PROP_SUBIDLIST));
-	if (hSubAppName == NULL && hSubIdList == NULL)
-		// SetWindowTheme() wasn't called
-		return;
-
-	arch = arch386;
-	if (p->Is64Bit())
-		arch = archAMD64;
-	ai = &(archInfo[arch]);
-
-	pCode = p->AllocBlock(ai->nCall);
-	p->Write(pCode, 0, ai->call, ai->nCall);
-	p->MakeExecutable(pCode, ai->nCall);
-
-	// have some extra padding at the end of the string, just in case
-	pData = p->AllocBlock(ai->structSize + UXPROPSTRINGSIZE + 8);
-
-	pkernel32 = p->GetModuleBase(L"kernel32.dll");
-
-	off = p->GetProcAddress(pkernel32, "GetAtomNameW");
-	switch (arch) {
-	case arch386:
-		off32 = (uint32_t) off;
-		off = &off32;
-		break;
-	case archAMD64:
-		off64 = (uint64_t) off;
-		off = &off64;
-		break;
-	}
-	p->Write(pData, ai->offGANW, off, ai->sizeGANW);
-	off = p->GetProcAddress(pkernel32, "GetLastError");
-	switch (arch) {
-	case arch386:
-		off32 = (uint32_t) off;
-		off = &off32;
-		break;
-	case archAMD64:
-		off64 = (uint64_t) off;
-		off = &off64;
-		break;
-	}
-	p->Write(pData, ai->offGLE, off, ai->sizeGLE);
-
-	switch (arch) {
-	case arch386:
-		off32 = (uint32_t) (((size_t) pData) + ai->structSize);
-		break;
-	case archAMD64:
-		off64 = (uint64_t) (((size_t) pData) + ai->structSize);
-		break;
-	}
-	p->Write(pData, ai->offBuf, off, ai->sizeBuf);
-
-	if (hSubAppName != NULL) {
-		atom = (ATOM) hSubAppName;
-		p->Write(pData, ai->offAtom, &atom, ai->sizeAtom);
-		*pszSubAppName = runThread(p, ai, pCode, pData);
-	}
-
-	if (hSubIdList != NULL) {
-		atom = (ATOM) hSubIdList;
-		p->Write(pData, ai->offAtom, &atom, ai->sizeAtom);
-		*pszSubIdList = runThread(p, ai, pCode, pData);
-	}
-
-	p->FreeBlock(pData);
-	p->FreeBlock(pCode);
+	ph->Run();
+	return ph;
 }
