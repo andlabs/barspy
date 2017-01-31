@@ -14,6 +14,7 @@ CXXFILES = \
 	mainwin.cpp \
 	panic.cpp \
 	process.cpp \
+	prochelper.cpp \
 	tab.cpp \
 	toolbartab.cpp \
 	util.cpp
