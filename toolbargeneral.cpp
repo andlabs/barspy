@@ -96,74 +96,30 @@ static const uint8_t callAMD64[] = {
 };
 static const size_t nCallAMD64 = 374;
 
-struct archInfo {
-	const uint8_t *call;
-	size_t nCall;
-	size_t structSize;
-	size_t offSendMessageW;
-	size_t sizeSendMessageW;
-	size_t offHWND;
-	size_t sizeHWND;
-	size_t offGCSResultNonzero;
-	size_t sizeGCSResultNonzero;
-	size_t offShadow;
-	size_t sizeShadow;
-	size_t offHighlight;
-	size_t sizeHighlight;
-	size_t offMSResultNonzero;
-	size_t sizeMSResultNonzero;
-	size_t offMaxWidth;
-	size_t sizeMaxWidth;
-	size_t offMaxHeight;
-	size_t sizeMaxHeight;
-	size_t offGMCXPad;
-	size_t sizeGMCXPad;
-	size_t offGMCYPad;
-	size_t sizeGMCYPad;
-	size_t offGMCXBarPad;
-	size_t sizeGMCXBarPad;
-	size_t offGMCYBarPad;
-	size_t sizeGMCYBarPad;
-	size_t offGMCXButtonSpacing;
-	size_t sizeGMCXButtonSpacing;
-	size_t offGMCYButtonSpacing;
-	size_t sizeGMCYButtonSpacing;
-};
+static ProcessHelper *mkProcessHelper(Process *p)
+{
+	ProcessHelper *ph;
 
-// TODO CONTINUE HERE
+	ph = new ProcessHelper(p);
+	ph->SetCode(call386, nCall386, callAMD64, nCallAMD64);
+	ph->AddField("SendMessageWPtr", fieldPointer, 0, 4, 0, 8);
+	ph->AddField("hwnd", fieldPointer, 4, 4, 8, 8);
+	ph->AddField("gsResultNonzero", fieldDWORD, 8, 4, 16, 4);
+	ph->AddField("shadow", fieldCOLORREF, 12, 4, 20, 4);
+	ph->AddField("highlight", fieldCOLORREF, 16, 4, 24, 4);
+	ph->AddField("msResultNonzero", fieldDWORD, 20, 4, 28, 4);
+	ph->AddField("maxWidth", fieldLONG, 24, 4, 32, 4);
+	ph->AddField("maxHeight", fieldLONG, 28, 4, 36, 4);
+	ph->AddField("gmCXPad", fieldInt, 32, 4, 40, 4);
+	ph->AddField("gmCYPad", fieldInt, 36, 4, 44, 4);
+	ph->AddField("gmCXBarPad", fieldInt, 40, 4, 48, 4);
+	ph->AddField("gmCYBarPad", fieldInt, 44, 4, 52, 4);
+	ph->AddField("gmCXButtonSpacing", fieldInt, 48, 4, 56, 4);
+	ph->AddField("gmCYButtonSpacing", fieldInt, 52, 4, 60, 4);
+	return ph;
+}
 
-const struct archInfo archInfo[] = {
-#define arch386 0
-	{
-		call386, nCall386,
-		24,
-		0, 4,
-		4, 4,
-		8, 2,
-		12, 4,
-		16, 4,
-		20, 4,
-	},
-#define archAMD64 1
-	{
-		callAMD64, nCallAMD64,
-		40,
-		0, 8,
-		8, 8,
-		16, 2,
-		24, 8,
-		32, 4,
-		36, 4,
-	},
-};
-
-#define PROP_SUBAPPNAME 0xA911
-#define PROP_SUBIDLIST 0xA910
-// this is hardcoded into the above binary blobs
-#define UXPROPSTRINGSIZE 260
-
-static const char *fnGANW = "GetAtomNameW";
-static const char *fnGLE = "GetLastError";
+// TODO continue here
 
 static WCHAR *runThread(Process *p, const struct archInfo *ai, void *pCode, void *pData)
 {
