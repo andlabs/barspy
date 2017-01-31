@@ -421,6 +421,12 @@ int Form::WhichRowIs(HWND edit)
 	return -1;
 }
 
+void Form::QueueRedraw(int which)
+{
+	if (InvalidateRect(this->edits[which], NULL, TRUE) == 0)
+		panic(L"error queueing redraw of Form row: %I32d", GetLastError());
+}
+
 Chain::Chain(HWND parent, int id, int minEditWidth)
 {
 	this->parent = parent;

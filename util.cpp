@@ -134,3 +134,13 @@ void deleteObject(HGDIOBJ obj)
 	if (DeleteObject(obj) == 0)
 		panic(L"error deleting GDI object: %I32d", GetLastError());
 }
+
+HBRUSH createSolidBrush(COLORREF color)
+{
+	HBRUSH brush;
+
+	brush = CreateSolidBrush(color);
+	if (brush == NULL)
+		panic(L"error creating solid brush: %I32d", GetLastError());
+	return brush;
+}

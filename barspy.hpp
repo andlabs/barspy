@@ -34,6 +34,7 @@ extern void endDeferWindowPos(HDWP dwp);
 extern std::wstring colorToString(COLORREF color);
 extern std::wstring sizeToString(SIZE size);
 extern void deleteObject(HGDIOBJ obj);
+extern HBRUSH createSolidBrush(COLORREF color);
 
 // enum.cpp
 extern void enumWindowTree(HWND treeview, HTREEITEM (*f)(HWND treeview, HWND window, HTREEITEM parent));
@@ -117,6 +118,7 @@ public:
 	HDWP RelayoutWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *d);
 	HDWP RelayoutEditWidth(HDWP dwp, LONG x, LONG y, LONG width, Layouter *d);
 	int WhichRowIs(HWND edit);
+	void QueueRedraw(int which);
 };
 class Chain {
 	HWND parent;

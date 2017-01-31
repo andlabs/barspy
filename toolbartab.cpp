@@ -92,7 +92,7 @@ void ToolbarTab::Reflect(HWND hwnd, Process *p)
 		else {
 			s = colorToString(color);
 			this->generalCol1->SetText(gen1ButtonHighlight, s.c_str());
-			// TODO make brush
+			this->buttonHighlightBrush = createSolidBrush(color);
 		}
 		ph->ReadField("shadow", &color);
 		if (color == CLR_DEFAULT)
@@ -100,23 +100,22 @@ void ToolbarTab::Reflect(HWND hwnd, Process *p)
 		else {
 			s = colorToString(color);
 			this->generalCol1->SetText(gen1ButtonShadow, s.c_str());
-			// TODO make brush
+			this->buttonShadowBrush = createSolidBrush(color);
 		}
 	} else {
 		// TODO GetLastError() (requires reworking)
 		this->generalCol1->SetText(gen1ButtonHighlight, L"N/A");
 		this->generalCol1->SetText(gen1ButtonShadow, L"N/A");
 	}
-	// TODO refresh both
+	this->generalCol1->QueueRedraw(gen1ButtonHighlight);
+	this->generalCol1->QueueRedraw(gen1ButtonShadow);
 
 	color = (COLORREF) SendMessageW(hwnd, TB_GETINSERTMARKCOLOR, 0, 0);
 	s = colorToString(color);
 	this->generalCol1->SetText(gen1InsertionColor, s.c_str());
 	deleteObject(this->insertionPointBrush);
-	this->insertionPointBrush = CreateSolidBrush(color);
-	if (this->insertionPointBrush == NULL)
-		panic(L"error creating new insertion point brush: %I32d", GetLastError());
-	// TODO redraw the field now since its color has changed
+	this->insertionPointBrush = createSolidBrush(color);
+	this->generalCol1->QueueRedraw(gen1InsertionColor);
 
 	ph->ReadField("msResultNonzero", &dw);
 	if (dw) {
@@ -210,6 +209,12 @@ HDWP ToolbarTab::RelayoutChild(HDWP dwp, HWND page, RECT *fill, Layouter *d)
 bool ToolbarTab::OnCtlColorStatic(HDC dc, HWND hwnd, HBRUSH *brush)
 {
 	switch (this->generalCol1->WhichRowIs(hwnd)) {
+	case gen1ButtonHighlight:
+		*brush = this->buttonHighlightBrush;
+		return *brush != NULL;
+	case gen1ButtonShadow:
+		*brush = this->buttonShadowBrush;
+		return *brush != NULL;
 	case gen1InsertionColor:
 		*brush = this->insertionPointBrush;
 		return true;
