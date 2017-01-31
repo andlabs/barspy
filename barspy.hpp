@@ -258,6 +258,9 @@ class ToolbarTab : public Tab {
 	HBRUSH buttonHighlightBrush;
 	HBRUSH buttonShadowBrush;
 	HBRUSH insertionPointBrush;
+
+	Chain *buttonCount;
+	HWND buttonList;
 public:
 	ToolbarTab(HWND parent, int id);
 	void Reflect(HWND hwnd, Process *p);

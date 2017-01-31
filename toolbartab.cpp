@@ -22,6 +22,8 @@
 ToolbarTab::ToolbarTab(HWND parent, int id) :
 	Tab(parent, id)
 {
+	LVCOLUMNW lc;
+
 	this->generalTab = this->Add(L"General");
 	this->buttonsTab = this->Add(L"Buttons");
 	this->imagelistTab = this->Add(L"Image Lists");
@@ -52,6 +54,30 @@ ToolbarTab::ToolbarTab(HWND parent, int id) :
 	this->buttonHighlightBrush = NULL;
 	this->buttonShadowBrush = NULL;
 	this->insertionPointBrush = NULL;
+
+	this->buttonCount = new Chain(this->buttonsTab);
+	this->buttonCount->SetID(100);
+	this->buttonCount->SetMinEditWidth(50);
+	this->buttonCount->SetPadded(true);
+	this->buttonCount->Add(L"Buttons");
+	this->buttonCount->Add(L"Rows");
+
+	this->buttonList = CreateWindowExW(WS_EX_CLIENTEDGE,
+		WC_LISTVIEWW, L"",
+		WS_CHILD | WS_VISIBLE | WS_VSCROLL | LVS_ALIGNLEFT | LVS_NOCOLUMNHEADER | LVS_NOSORTHEADER | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL,
+		0, 0, 100, 100,
+		this->buttonsTab, (HMENU) (this->buttonCount->ID()), hInstance, NULL);
+	if (this->buttonList == NULL)
+		panic(L"error creating button list: %I32d", GetLastError());
+	SendMessageW(this->buttonList, LVM_SETEXTENDEDLISTVIEWSTYLE,
+		LVS_EX_FULLROWSELECT,
+		LVS_EX_FULLROWSELECT);
+	ZeroMemory(&lc, sizeof (LVCOLUMNW));
+	lc.mask = LVCF_FMT | LVCF_WIDTH;
+	lc.fmt = LVCFMT_LEFT | LVCFMT_IMAGE;
+	lc.cx = 100;
+	if (SendMessageW(this->buttonList, LVM_INSERTCOLUMN, 0, (LPARAM) (&lc)) == (LRESULT) (-1))
+		panic(L"error adding column to button list: %I32d", GetLastError());
 }
 
 void ToolbarTab::Reflect(HWND hwnd, Process *p)
@@ -187,21 +213,51 @@ void ToolbarTab::Reflect(HWND hwnd, Process *p)
 	this->generalCol2->SetText(gen2DrawTextFlags, s.c_str());
 
 	delete ph;
+
+	// TODO used named constants?
+	lResult = SendMessageW(hwnd, TB_BUTTONCOUNT, 0, 0);
+	s = std::to_wstring(lResult);
+	this->buttonCount->SetText(0, s.c_str());
+	lResult = SendMessageW(hwnd, TB_GETROWS, 0, 0);
+	s = std::to_wstring(lResult);
+	this->buttonCount->SetText(1, s.c_str());
+
+	if (SendMessageW(this->buttonList, LVM_DELETEALLITEMS, 0, 0) == (LRESULT) FALSE)
+		panic(L"error wiping button list for new toolbar: %I32d", GetLastError());
 }
 
 HDWP ToolbarTab::RelayoutChild(HDWP dwp, HWND page, RECT *fill, Layouter *d)
 {
 	LONG colwid;
+	SIZE size;
 
-	colwid = (fill->right - fill->left - d->PaddingX()) / 2;
-	dwp = this->generalCol1->RelayoutWidth(dwp,
-		fill->left, fill->top,
-		colwid,
-		d);
-	dwp = this->generalCol2->RelayoutWidth(dwp,
-		fill->left + colwid + d->PaddingX(), fill->top,
-		colwid,
-		d);
+	if (page == this->generalTab) {
+		colwid = (fill->right - fill->left - d->PaddingX()) / 2;
+		dwp = this->generalCol1->RelayoutWidth(dwp,
+			fill->left, fill->top,
+			colwid,
+			d);
+		dwp = this->generalCol2->RelayoutWidth(dwp,
+			fill->left + colwid + d->PaddingX(), fill->top,
+			colwid,
+			d);
+	}
+
+	if (page == this->buttonsTab) {
+		colwid = (fill->right - fill->left - d->PaddingX()) / 3;
+		size = this->buttonCount->MinimumSize(d);
+		if (colwid < size.cx)
+			colwid = size.cx;
+		dwp = this->buttonCount->Relayout(dwp,
+			fill->left, fill->top,
+			d);
+		dwp = deferWindowPos(dwp, this->buttonList,
+			fill->left, fill->top + size.cy + d->PaddingY(),
+			colwid, fill->bottom - (fill->top + size.cy + d->PaddingY()),
+			0);
+		if (SendMessageW(this->buttonList, LVM_SETCOLUMNWIDTH, 0, LVSCW_AUTOSIZE) == (LRESULT) FALSE)
+			panic(L"error resizing button list column: %I32d", GetLastError());
+	}
 
 	return dwp;
 }

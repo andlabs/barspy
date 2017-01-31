@@ -525,6 +525,9 @@ SIZE Chain::MinimumSize(Layouter *d)
 	this->padding(d, &xPadding, &yPadding);
 
 	s.cx = (LONG) ((this->minEditWidth + xPadding) * this->edits.size());
+	// TODO is this correct?
+	if (this->edits.size() == this->labels.size())
+		s.cx += xPadding;
 	for (auto hwnd : this->labels)
 		s.cx += d->TextWidth(hwnd);
 
