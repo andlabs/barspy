@@ -75,8 +75,6 @@ void ToolbarTab::Reflect(HWND hwnd, Process *p)
 
 	// TODO TB_GETCOLORSCHEME — requires
 	// - injecting to get a struct out
-	// - responding to WM_CTLCOLORSTATIC in the dialog procedure
-	// - letting Form tell us which row an edit handle is
 	this->generalCol1->SetText(gen1ButtonHighlight, L"TODO");
 	this->generalCol1->SetText(gen1ButtonShadow, L"TODO");
 
