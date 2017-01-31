@@ -28,6 +28,7 @@ struct tpargs {
 
 	// TB_GETCOLORSCHEME
 	DWORD gcsResultNonzero;
+	// TODO these names should be switched
 	COLORREF shadow;
 	COLORREF highlight;
 

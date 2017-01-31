@@ -105,8 +105,8 @@ static ProcessHelper *mkProcessHelper(Process *p)
 	ph->AddField("SendMessageWPtr", fieldPointer, 0, 4, 0, 8);
 	ph->AddField("hwnd", fieldPointer, 4, 4, 8, 8);
 	ph->AddField("gsResultNonzero", fieldDWORD, 8, 4, 16, 4);
-	ph->AddField("shadow", fieldCOLORREF, 12, 4, 20, 4);
-	ph->AddField("highlight", fieldCOLORREF, 16, 4, 24, 4);
+	ph->AddField("highlight", fieldCOLORREF, 12, 4, 20, 4);
+	ph->AddField("shadow", fieldCOLORREF, 16, 4, 24, 4);
 	ph->AddField("msResultNonzero", fieldDWORD, 20, 4, 28, 4);
 	ph->AddField("maxWidth", fieldLONG, 24, 4, 32, 4);
 	ph->AddField("maxHeight", fieldLONG, 28, 4, 36, 4);
@@ -127,7 +127,7 @@ ProcessHelper *getToolbarGeneral(HWND hwnd, Process *p)
 	ph = mkProcessHelper(p);
 
 	// TODO add error checks to all these calls
-	puser32 = p->GetModuleBase(L"kernel32.dll");
+	puser32 = p->GetModuleBase(L"user32.dll");
 
 	ph->WriteFieldProcAddress("SendMessageWPtr", puser32, "SendMessageW");
 	ph->WriteFieldPointer("hwnd", hwnd);

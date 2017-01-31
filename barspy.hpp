@@ -32,6 +32,8 @@ extern HDWP beginDeferWindowPos(int n);
 extern HDWP deferWindowPos(HDWP dwp, HWND hwnd, int x, int y, int width, int height, UINT flags);
 extern void endDeferWindowPos(HDWP dwp);
 extern std::wstring colorToString(COLORREF color);
+extern std::wstring sizeToString(SIZE size);
+extern void deleteObject(HGDIOBJ obj);
 
 // enum.cpp
 extern void enumWindowTree(HWND treeview, HTREEITEM (*f)(HWND treeview, HWND window, HTREEITEM parent));
@@ -251,6 +253,8 @@ class ToolbarTab : public Tab {
 	Form *generalCol1;
 	Form *generalCol2;
 
+	HBRUSH buttonHighlightBrush;
+	HBRUSH buttonShadowBrush;
 	HBRUSH insertionPointBrush;
 public:
 	ToolbarTab(HWND parent, int id);

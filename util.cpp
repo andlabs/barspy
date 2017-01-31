@@ -118,3 +118,19 @@ std::wstring colorToString(COLORREF color)
 	ss << L"(" << r << L", " << g << L", " << b << L")";
 	return ss.str();
 }
+
+std::wstring sizeToString(SIZE size)
+{
+	std::wostringstream ss;
+
+	ss << size.cx << L"x" << size.cy;
+	return ss.str();
+}
+
+void deleteObject(HGDIOBJ obj)
+{
+	if (obj == NULL)
+		return;
+	if (DeleteObject(obj) == 0)
+		panic(L"error deleting GDI object: %I32d", GetLastError());
+}

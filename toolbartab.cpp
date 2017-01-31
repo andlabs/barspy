@@ -49,20 +49,27 @@ ToolbarTab::ToolbarTab(HWND parent, int id) :
 	this->generalCol2->Add(L"DrawText() Flags");
 	// TODO TB_SETBOUNDINGSIZE
 
+	this->buttonHighlightBrush = NULL;
+	this->buttonShadowBrush = NULL;
 	this->insertionPointBrush = NULL;
 }
 
 void ToolbarTab::Reflect(HWND hwnd, Process *p)
 {
+	ProcessHelper *ph;
 	HICON iconToUse;
 	DWORD dw, all1s;
 	COLORREF color;
+	SIZE size;
 	INT intval;
+	int k;
 	HWND hwval;
 	RECT wr, cr;
 	std::wostringstream *ss;
 	std::wstring s;
 	LRESULT lResult;
+
+	ph = getToolbarGeneral(hwnd, p);
 
 	lResult = SendMessageW(hwnd, TB_GETANCHORHIGHLIGHT, 0, 0);
 	iconToUse = hIconNo;
@@ -73,31 +80,72 @@ void ToolbarTab::Reflect(HWND hwnd, Process *p)
 	s = toolbarBitmapFlagsString(hwnd);
 	this->generalCol1->SetText(gen1BitmapFlags, s.c_str());
 
-	// TODO TB_GETCOLORSCHEME — requires
-	// - injecting to get a struct out
-	this->generalCol1->SetText(gen1ButtonHighlight, L"TODO");
-	this->generalCol1->SetText(gen1ButtonShadow, L"TODO");
+	deleteObject(this->buttonShadowBrush);
+	this->buttonShadowBrush = NULL;
+	deleteObject(this->buttonHighlightBrush);
+	this->buttonHighlightBrush = NULL;
+	ph->ReadField("gsResultNonzero", &dw);
+	if (dw) {
+		ph->ReadField("highlight", &color);
+		if (color == CLR_DEFAULT)
+			this->generalCol1->SetText(gen1ButtonHighlight, L"default");
+		else {
+			s = colorToString(color);
+			this->generalCol1->SetText(gen1ButtonHighlight, s.c_str());
+			// TODO make brush
+		}
+		ph->ReadField("shadow", &color);
+		if (color == CLR_DEFAULT)
+			this->generalCol1->SetText(gen1ButtonShadow, L"default");
+		else {
+			s = colorToString(color);
+			this->generalCol1->SetText(gen1ButtonShadow, s.c_str());
+			// TODO make brush
+		}
+	} else {
+		// TODO GetLastError() (requires reworking)
+		this->generalCol1->SetText(gen1ButtonHighlight, L"N/A");
+		this->generalCol1->SetText(gen1ButtonShadow, L"N/A");
+	}
+	// TODO refresh both
 
 	color = (COLORREF) SendMessageW(hwnd, TB_GETINSERTMARKCOLOR, 0, 0);
 	s = colorToString(color);
 	this->generalCol1->SetText(gen1InsertionColor, s.c_str());
-	if (this->insertionPointBrush != NULL)
-		if (DeleteObject(this->insertionPointBrush) == 0)
-			panic(L"error deleting old insertion point brush: %I32d", GetLastError());
+	deleteObject(this->insertionPointBrush);
 	this->insertionPointBrush = CreateSolidBrush(color);
 	if (this->insertionPointBrush == NULL)
 		panic(L"error creating new insertion point brush: %I32d", GetLastError());
 	// TODO redraw the field now since its color has changed
 
-	// TODO TB_GETMAXSIZE
-	// requires injection
-	this->generalCol1->SetText(gen1MaxSize, L"TODO");
+	ph->ReadField("msResultNonzero", &dw);
+	if (dw) {
+		ph->ReadField("maxWidth", &(size.cx));
+		ph->ReadField("maxHeight", &(size.cy));
+		s = sizeToString(size);
+		this->generalCol1->SetText(gen1MaxSize, s.c_str());
+	} else
+		// TODO we'd have to regenerate all this if we wanted to store last errors
+		this->generalCol1->SetText(gen1MaxSize, L"N/A");
 
-	// TODO TB_GETMETRICS
-	// injection again
-	this->generalCol1->SetText(gen1PaddingSize, L"TODO");
-	this->generalCol1->SetText(gen1BarPadSize, L"TODO");
-	this->generalCol2->SetText(gen2SpacingSize, L"TODO");
+	ph->ReadField("gmCXPad", &k);
+	size.cx = k;
+	ph->ReadField("gmCYPad", &k);
+	size.cy = k;
+	s = sizeToString(size);
+	this->generalCol1->SetText(gen1PaddingSize, s.c_str());
+	ph->ReadField("gmCXBarPad", &k);
+	size.cx = k;
+	ph->ReadField("gmCYBarPad", &k);
+	size.cy = k;
+	s = sizeToString(size);
+	this->generalCol1->SetText(gen1BarPadSize, s.c_str());
+	ph->ReadField("gmCXButtonSpacing", &k);
+	size.cx = k;
+	ph->ReadField("gmCYButtonSpacing", &k);
+	size.cy = k;
+	s = sizeToString(size);
+	this->generalCol2->SetText(gen2SpacingSize, s.c_str());
 
 	dw = (DWORD) SendMessageW(hwnd, TB_GETPADDING, 0, 0);
 	ss = new std::wostringstream;
@@ -138,6 +186,8 @@ void ToolbarTab::Reflect(HWND hwnd, Process *p)
 	SendMessageW(hwnd, TB_SETDRAWTEXTFLAGS, (WPARAM) all1s, (LPARAM) dw);
 	s = drawTextFlagsString(dw);
 	this->generalCol2->SetText(gen2DrawTextFlags, s.c_str());
+
+	delete ph;
 }
 
 HDWP ToolbarTab::RelayoutChild(HDWP dwp, HWND page, RECT *fill, Layouter *d)
