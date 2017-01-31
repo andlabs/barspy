@@ -163,6 +163,39 @@ public:
 extern void initProcess(void);
 extern Process *processFromHWND(HWND hwnd);
 
+// prochelper.cpp
+class ProcessHelper {
+	Process *p;
+	struct ProcessHelperPriv *priv;
+	void finalizeData(void);
+public:
+	ProcessHelper(Process *p);
+	// TODO make sure no function has () (empty argument lists)
+	~ProcessHelper(void);
+
+	void SetCode(const uint8_t *code386, size_t n386, const uint8_t *codeAMD64, size_t nAMD64);
+	void AddField(const std::string &name, int type, size_t off386, size_t size386, size_t offAMD64, size_t sizeAMD64);
+	template<typename T> void ReadField(const std::string &field, T *out);
+	template<typename T> void WriteField(const std::string &field, T val);
+	void WriteFieldPointer(const std::string &field, void *ptr);
+	void WriteFieldProcAddress(const std::string &field, void *modbase, const char *name);
+	void SetExtraDataSize(size_t n);
+	void *ExtraDataPtr(void);
+	void *ReadExtraData(void);
+	void Run(void);
+};
+// field types
+enum {
+	fieldPointer,
+	fieldATOM,
+	fieldUINT,
+	fieldDWORD,
+	fieldHRESULT,
+	fieldCOLORREF,
+	fieldLONG,
+	fieldInt,
+};
+
 // common.cpp
 class Common {
 	Form version;

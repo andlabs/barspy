@@ -35,92 +35,50 @@ static const uint8_t callAMD64[] = {
 };
 static const size_t nCallAMD64 = 81;
 
-struct archInfo {
-	const uint8_t *call;
-	size_t nCall;
-	size_t structSize;
-	size_t offGANW;
-	size_t sizeGANW;
-	size_t offGLE;
-	size_t sizeGLE;
-	size_t offAtom;
-	size_t sizeAtom;
-	size_t offBuf;
-	size_t sizeBuf;
-	size_t offRet;
-	size_t sizeRet;
-	size_t offLastError;
-	size_t sizeLastError;
-};
-
-const struct archInfo archInfo[] = {
-#define arch386 0
-	{
-		call386, nCall386,
-		24,
-		0, 4,
-		4, 4,
-		8, 2,
-		12, 4,
-		16, 4,
-		20, 4,
-	},
-#define archAMD64 1
-	{
-		callAMD64, nCallAMD64,
-		40,
-		0, 8,
-		8, 8,
-		16, 2,
-		24, 8,
-		32, 4,
-		36, 4,
-	},
-};
-
 #define PROP_SUBAPPNAME 0xA911
 #define PROP_SUBIDLIST 0xA910
 // this is hardcoded into the above binary blobs
 #define UXPROPSTRINGSIZE 260
 
-static const char *fnGANW = "GetAtomNameW";
-static const char *fnGLE = "GetLastError";
-
-static WCHAR *runThread(Process *p, const struct archInfo *ai, void *pCode, void *pData)
+static ProcessHelper *mkProcessHelper(Process *p)
 {
-	HANDLE hThread;
-	WCHAR *out;
-	DWORD ret;
-	DWORD le;
+	ProcessHelper *ph;
 
-	hThread = p->CreateThread(pCode, pData);
-	// TODO switch to MsgWaitForMultipleObjectsEx()? this code assumes it is atomic with regards to the UI
-	if (WaitForSingleObject(hThread, INFINITE) == WAIT_FAILED)
-		panic(L"error waiting for process string thread to run: %I32d", GetLastError());
-	if (CloseHandle(hThread) == 0)
-		panic(L"error closing thread: %I32d", GetLastError());
+	ph = new ProcessHelper(p);
+	ph->SetCode(call386, nCall386, callAMD64, nCallAMD64);
+	ph->AddField("GetAtomNameWPtr", fieldPointer, 0, 4, 0, 8);
+	ph->AddField("GetLastErrorPtr", fieldPointer, 4, 4, 8, 8);
+	ph->AddField("atom", fieldATOM, 8, 2, 16, 2);
+	ph->AddField("buf", fieldPointer, 12, 4, 24, 8);
+	ph->AddField("ret", fieldUINT, 16, 4, 32, 4);
+	ph->AddField("lastError", fieldDWORD, 20, 4, 36, 4);
+	// extra just to be safe
+	ph->SetExtraDataSize(UXPROPSTRINGSIZE + 8);
+	return ph;
+}
 
-	p->Read(pData, ai->offRet, &ret, ai->sizeRet);
-	p->Read(pData, ai->offLastError, &le, ai->sizeLastError);
+static WCHAR *runThread(ProcessHelper *ph, ATOM atom)
+{
+	UINT ret;
+	DWORD lastError;
+
+	ph->WriteField("atom", atom);
+	ph->Run();
+
+	ph->ReadField("ret", &ret);
+	ph->ReadField("lastError", &lastError);
 	// TODO make sure this logic is right
-	if (ret == 0 && le != ERROR_SUCCESS)
+	if (ret == 0 && lastError != ERROR_SUCCESS)
 		return NULL;
-	out = new WCHAR[ret + 1];
-	p->Read(pData, ai->structSize, out, (ret + 1) * sizeof (WCHAR));
-	return out;
+	return (WCHAR *) ph->ReadExtraData();
 }
 
 void getWindowTheme(HWND hwnd, Process *p, WCHAR **pszSubAppName, WCHAR **pszSubIdList)
 {
 	HANDLE hSubAppName, hSubIdList;
 	ATOM atom;
-	int arch;
-	const struct archInfo *ai;
-	LPVOID pCode, pData;
+	ProcessHelper *ph;
 	void *pkernel32;
-	uint32_t off32;
-	uint64_t off64;
-	void *off;
 
 	*pszSubAppName = NULL;
 	*pszSubIdList = NULL;
@@ -130,67 +88,23 @@ void getWindowTheme(HWND hwnd, Process *p, WCHAR **pszSubAppName, WCHAR **pszSub
 		// SetWindowTheme() wasn't called
 		return;
 
-	arch = arch386;
-	if (p->Is64Bit())
-		arch = archAMD64;
-	ai = &(archInfo[arch]);
-
-	pCode = p->AllocBlock(ai->nCall);
-	p->Write(pCode, 0, ai->call, ai->nCall);
-	p->MakeExecutable(pCode, ai->nCall);
-
-	// have some extra padding at the end of the string, just in case
-	pData = p->AllocBlock(ai->structSize + UXPROPSTRINGSIZE + 8);
+	ph = mkProcessHelper(p);
 
 	pkernel32 = p->GetModuleBase(L"kernel32.dll");
 
-	off = p->GetProcAddress(pkernel32, "GetAtomNameW");
-	switch (arch) {
-	case arch386:
-		off32 = (uint32_t) off;
-		off = &off32;
-		break;
-	case archAMD64:
-		off64 = (uint64_t) off;
-		off = &off64;
-		break;
-	}
-	p->Write(pData, ai->offGANW, off, ai->sizeGANW);
-	off = p->GetProcAddress(pkernel32, "GetLastError");
-	switch (arch) {
-	case arch386:
-		off32 = (uint32_t) off;
-		off = &off32;
-		break;
-	case archAMD64:
-		off64 = (uint64_t) off;
-		off = &off64;
-		break;
-	}
-	p->Write(pData, ai->offGLE, off, ai->sizeGLE);
-
-	switch (arch) {
-	case arch386:
-		off32 = (uint32_t) (((size_t) pData) + ai->structSize);
-		break;
-	case archAMD64:
-		off64 = (uint64_t) (((size_t) pData) + ai->structSize);
-		break;
-	}
-	p->Write(pData, ai->offBuf, off, ai->sizeBuf);
+	ph->WriteFieldProcAddress("GetAtomNameWPtr", pkernel32, "GetAtomNameW");
+	ph->WriteFieldProcAddress("GetLastErrorPtr", pkernel32, "GetLastError");
+	ph->WriteFieldPointer("buf", ph->ExtraDataPtr());
 
 	if (hSubAppName != NULL) {
 		atom = (ATOM) hSubAppName;
-		p->Write(pData, ai->offAtom, &atom, ai->sizeAtom);
-		*pszSubAppName = runThread(p, ai, pCode, pData);
+		*pszSubAppName = runThread(ph, atom);
 	}
 
 	if (hSubIdList != NULL) {
 		atom = (ATOM) hSubIdList;
-		p->Write(pData, ai->offAtom, &atom, ai->sizeAtom);
-		*pszSubIdList = runThread(p, ai, pCode, pData);
+		*pszSubIdList = runThread(ph, atom);
 	}
 
-	p->FreeBlock(pData);
-	p->FreeBlock(pCode);
+	delete ph;
 }

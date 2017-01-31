@@ -21,43 +21,12 @@ struct ProcessHelperPriv {
 	size_t extraDataSize;
 };
 
-class ProcessHelper {
-	Process *p;
-	struct ProcessHelperPriv *priv;
-	void finalizeData(void);
-public:
-	ProcessHelper(Process *p);
-	// TODO make sure no function has () (empty argument lists)
-	~ProcessHelper(void);
-
-	void SetCode(const uint8_t *code386, size_t n386, const uint8_t *codeAMD64, size_t nAMD64);
-	void AddField(const std::string &name, int type, size_t off386, size_t size386, size_t offAMD64, size_t sizeAMD64);
-	template<typename T> void ReadField(const std::string &field, T *out);
-	template<typename T> void WriteField(const std::string &field, T val);
-	void WritePointer(const std::string &field, void *ptr);
-	void WriteFieldProcAddress(const char *field, void *modbase, const char *name);
-	void SetExtraDataSize(size_t n);
-	void *ReadExtraData(void);
-	void Run(void);
-};
-// field types
-enum {
-	fieldPointer,
-	fieldATOM,
-	fieldUINT,
-	fieldDWORD,
-	fieldHRESULT,
-	fieldCOLORREF,
-	fieldLONG,
-	fieldInt,
-};
-
 ProcessHelper::ProcessHelper(Process *p)
 {
 	this->p = p;
 
 	this->priv = new struct ProcessHelperPriv;
-	ZeroMemory(&(this->priv), sizeof (struct ProcessHelperPriv));
+	ZeroMemory(this->priv, sizeof (struct ProcessHelperPriv));
 	this->priv->is64Bit = this->p->Is64Bit();
 	this->priv->fields = new std::map<std::string, struct structField *>;
 }
@@ -129,8 +98,12 @@ static bool compatibleTypes(int type)
 }
 
 // note: this all assumes that the sizes of these types are the same across platforms; this is true for 386 and AMD64
-#define COMPATIBLE(T, U) template<T> static bool compatibleTypes(int type) { return type == U; }
-#define COMPATIBLE2(T, U, U2) template<T> static bool compatibleTypes(int type) { return type == U || type == U2; }
+// oh and we need to do instantiation because cross-object-file references
+#define INSTANTIATE(T) \
+	template void ProcessHelper::ReadField<T>(const std::string &field, T *out); \
+	template void ProcessHelper::WriteField<T>(const std::string &field, T out);
+#define COMPATIBLE(T, U) template<> static bool compatibleTypes<T>(int type) { return type == U; } INSTANTIATE(T)
+#define COMPATIBLE2(T, U, U2) template<> static bool compatibleTypes<T>(int type) { return type == U || type == U2; } INSTANTIATE(T)
 COMPATIBLE(ATOM, fieldATOM)
 COMPATIBLE(UINT, fieldUINT)
 COMPATIBLE2(DWORD,
@@ -202,7 +175,7 @@ void ProcessHelper::WriteField(const std::string &field, T val)
 	p->Write(priv->pData, off, &val, size);
 }
 
-void ProcessHelper::WritePointer(const std::string &field, void *ptr)
+void ProcessHelper::WriteFieldPointer(const std::string &field, void *ptr)
 {
 	Process *p = this->p;
 	struct ProcessHelperPriv *priv = this->priv;
@@ -222,10 +195,15 @@ void ProcessHelper::WritePointer(const std::string &field, void *ptr)
 		p->Write(priv->pData, f->off386, &p32, f->size386);
 }
 
-void ProcessHelper::WriteFieldProcAddress(const char *field, void *modbase, const char *name)
+void ProcessHelper::WriteFieldProcAddress(const std::string &field, void *modbase, const char *name)
 {
-	// TODO call WritePointer()
-	this->WritePointer("test", NULL);
+	Process *p = this->p;
+	void *proc;
+
+	proc = p->GetProcAddress(modbase, name);
+	if (proc == NULL)
+		panic(L"procedure not found in module");
+	this->WriteFieldPointer(field, proc);
 }
 
 void ProcessHelper::SetExtraDataSize(size_t n)
@@ -235,6 +213,20 @@ void ProcessHelper::SetExtraDataSize(size_t n)
 	if (priv->pData != NULL)
 		panic(L"cannot set extra data size of finalized data");
 	priv->extraDataSize = n;
+}
+
+void *ProcessHelper::ExtraDataPtr(void)
+{
+	struct ProcessHelperPriv *priv = this->priv;
+	uint8_t *d;
+	size_t off;
+
+	this->finalizeData();
+	d = (uint8_t *) (priv->pData);
+	off = priv->structSize386;
+	if (priv->is64Bit)
+		off = priv->structSizeAMD64;
+	return d + off;
 }
 
 void *ProcessHelper::ReadExtraData(void)
