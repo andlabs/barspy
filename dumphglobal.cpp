@@ -146,7 +146,7 @@ static uint8_t *runThread(ProcessHelper *ph, Process *p, HGLOBAL hGlobal, SIZE_T
 	return buf;
 }
 
-uint8_t *readStreamData(Process *p, HGLOBAL hGlobal, SIZE_T *size)
+uint8_t *dumpHGLOBALStreamData(Process *p, HGLOBAL hGlobal, SIZE_T *size)
 {
 	uint8_t *buf;
 	ProcessHelper *ph;

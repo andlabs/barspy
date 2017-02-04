@@ -281,6 +281,12 @@ extern HMODULE loadLibraryProcess(Process *p, const WCHAR *name);
 // freelibrary.cpp
 extern void freeLibraryProcess(Process *p, HMODULE module);
 
+// writeimglist5.cpp
+extern HGLOBAL writeImageListV5(HWND hwnd, Process *p, HIMAGELIST imglist, void *pole32);
+
+// dumphglobal.cpp
+extern uint8_t *dumpHGLOBALStreamData(Process *p, HGLOBAL hGlobal, SIZE_T *size);
+
 // flags.cpp
 extern std::wstring toolbarStyleString(HWND toolbar);
 extern std::wstring toolbarExStyleString(HWND toolbar);

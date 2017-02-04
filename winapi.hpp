@@ -27,6 +27,7 @@
 #include <shobjidl.h>
 #include <strsafe.h>
 #include <psapi.h>
+#include <shlwapi.h>
 
 #include <stdint.h>
 #include <string.h>

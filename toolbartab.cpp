@@ -80,6 +80,35 @@ ToolbarTab::ToolbarTab(HWND parent, int id) :
 		panic(L"error adding column to button list: %I32d", GetLastError());
 }
 
+static HIMAGELIST readImageList(Process *p, HWND hwnd, UINT uMsg)
+{
+	HIMAGELIST imglist;
+	HMODULE pole32;
+	HGLOBAL hGlobal;
+	uint8_t *buf;
+	SIZE_T size;
+	IStream *stream;
+
+	imglist = (HIMAGELIST) SendMessageW(hwnd, uMsg, 0, 0);
+	if (imglist == NULL)
+		return NULL;
+	pole32 = loadLibraryProcess(p, L"ole32.dll");
+	hGlobal = writeImageListV5(hwnd, p, imglist, (void *) pole32);
+	buf = dumpHGLOBALStreamData(p, hGlobal, &size);
+	freeLibraryProcess(p, pole32);
+
+	// TODO allow larger sizes
+	stream = SHCreateMemStream(buf, (UINT) size);
+	if (stream == NULL)
+		panic(L"error creating image list read stream: %I32d", GetLastError());
+	imglist = ImageList_Read(stream);
+	if (imglist == NULL)
+		panic(L"error reading V5 image list: %I32d", GetLastError());
+	stream->Release();
+	delete[] buf;
+	return imglist;
+}
+
 void ToolbarTab::Reflect(HWND hwnd, Process *p)
 {
 	ProcessHelper *ph;
@@ -224,6 +253,8 @@ void ToolbarTab::Reflect(HWND hwnd, Process *p)
 
 	if (SendMessageW(this->buttonList, LVM_DELETEALLITEMS, 0, 0) == (LRESULT) FALSE)
 		panic(L"error wiping button list for new toolbar: %I32d", GetLastError());
+
+	readImageList(p, hwnd, TB_GETIMAGELIST);
 }
 
 HDWP ToolbarTab::RelayoutChild(HDWP dwp, HWND page, RECT *fill, Layouter *d)
