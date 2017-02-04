@@ -55,7 +55,8 @@ DWORD WINAPI ThreadProc(LPVOID lpParameter)
 		goto fail;
 	// unfortunately memcpy() does not intrinsify on 32-bit if the size is determined at runtime :(
 	// and memmove() cannot be made intrinsic
-	// unless we can prove RtlCopyMemory() or RtlMoveMemory() exist on all platforms we care about (once we decide what they are, which I'm leaning to XP and newer, TODO) (TODO), we have no choice...
+	// and RtlCopyMemory() and RtlMoveMemory() are just #defines to memcpy() and memmove(), even in the WDK (despite MSDN saying they're in DLLs...; http://nullprogram.com/blog/2016/02/28/ says it *is* available, but since I can't confirm the calling convention I'd rather not, at least not yet (also it says RtlCopyMemory() was not exported until Windows 7 but unlike RtlMoveMemory() there is only the Windows Drivers page on MSDN for that one, not a Windows API page), oh and then there's http://stackoverflow.com/questions/16008625/why-is-rtlfillmemory-rtlcopymemory-defined-as-macro which says we were never supposed to use these in the first place! — TODO)
+	// so we have no choice...
 	bdest = (uint8_t *) (a->memory);
 	bsrc = (uint8_t *) gmem;
 	for (i = 0; i < a->size; i++)
