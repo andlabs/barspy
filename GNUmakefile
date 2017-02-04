@@ -8,6 +8,7 @@ CXXFILES = \
 	dllgetversion.cpp \
 	enum.cpp \
 	flags.cpp \
+	freelibrary.cpp \
 	getwindowtheme.cpp \
 	layout.cpp \
 	loadlibrary.cpp \

@@ -201,6 +201,7 @@ enum {
 	fieldCOLORREF,
 	fieldLONG,
 	fieldInt,
+	fieldBOOL,
 };
 
 // common.cpp
@@ -273,6 +274,12 @@ public:
 
 // toolbargeneral.cpp
 extern ProcessHelper *getToolbarGeneral(HWND hwnd, Process *p);
+
+// loadlibrary.cpp
+extern HMODULE loadLibraryProcess(Process *p, const WCHAR *name);
+
+// freelibrary.cpp
+extern void freeLibraryProcess(Process *p, HMODULE module);
 
 // flags.cpp
 extern std::wstring toolbarStyleString(HWND toolbar);

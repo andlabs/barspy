@@ -18,59 +18,53 @@ static const uint8_t callAMD64[] = {
 	0x44, 0x24, 0x20, 0x48, 0x8B, 0x44, 0x24, 0x20,
 	0x48, 0x8B, 0x48, 0x10, 0x48, 0x8B, 0x44, 0x24,
 	0x20, 0xFF, 0x10, 0x48, 0x8B, 0x4C, 0x24, 0x20,
-	0x48, 0x89, 0x41, 0x18, 0x48, 0x8B, 0x44, 0x24,
-	0x20, 0xFF, 0x50, 0x08, 0x48, 0x8B, 0x4C, 0x24,
-	0x20, 0x89, 0x41, 0x20, 0x33, 0xC0, 0x48, 0x83,
-	0xC4, 0x38, 0xC3,
+	0x89, 0x41, 0x18, 0x48, 0x8B, 0x44, 0x24, 0x20,
+	0xFF, 0x50, 0x08, 0x48, 0x8B, 0x4C, 0x24, 0x20,
+	0x89, 0x41, 0x1C, 0x33, 0xC0, 0x48, 0x83, 0xC4,
+	0x38, 0xC3,
 };
-static const size_t nCallAMD64 = 67;
+static const size_t nCallAMD64 = 66;
 
-static ProcessHelper *mkProcessHelper(Process *p, const WCHAR *name)
+static ProcessHelper *mkProcessHelper(Process *p)
 {
 	ProcessHelper *ph;
 
 	ph = new ProcessHelper(p);
 	ph->SetCode(call386, nCall386, callAMD64, nCallAMD64);
-	ph->AddField("LoadLibraryWPtr", fieldPointer, 0, 4, 0, 8);
+	ph->AddField("FreeLibraryPtr", fieldPointer, 0, 4, 0, 8);
 	ph->AddField("GetLastErrorPtr", fieldPointer, 4, 4, 8, 8);
-	ph->AddField("name", fieldPointer, 8, 4, 16, 8);
-	ph->AddField("module", fieldPointer, 12, 4, 24, 8);
-	ph->AddField("lastError", fieldDWORD, 16, 4, 32, 4);
-	ph->SetExtraDataSize((wcslen(name) + 1) * sizeof (WCHAR));
-	ph->WriteExtraData(name);
+	ph->AddField("module", fieldPointer, 8, 4, 16, 8);
+	ph->AddField("ret", fieldBOOL, 12, 4, 24, 4);
+	ph->AddField("lastError", fieldDWORD, 16, 4, 28, 4);
 	return ph;
 }
 
-static HMODULE runThread(ProcessHelper *ph)
+static void runThread(ProcessHelper *ph, HMODULE module)
 {
-	HMODULE ret;
+	BOOL ret;
 	DWORD lastError;
 
+	ph->WriteFieldPointer("module", module);
 	ph->Run();
 
-	ret = (HMODULE) ph->ReadFieldPointer("module");
+	ph->ReadField("ret", &ret);
 	ph->ReadField("lastError", &lastError);
-	// TODO allow this to fail gracefully
-	if (ret == NULL)
-		panic(L"error loading OLE32 into process: %I32d", lastError);
-	return ret;
+	if (ret == 0)
+		panic(L"error freeing OLE32 from process: %I32d", lastError);
 }
 
-HMODULE loadLibraryProcess(Process *p, const WCHAR *name)
+void freeLibraryProcess(Process *p, HMODULE module)
 {
-	HMODULE module;
 	ProcessHelper *ph;
 	void *pkernel32;
 
-	ph = mkProcessHelper(p, name);
+	ph = mkProcessHelper(p);
 
 	pkernel32 = p->GetModuleBase(L"kernel32.dll");
 
-	ph->WriteFieldProcAddress("LoadLibraryWPtr", pkernel32, "LoadLibraryW");
+	ph->WriteFieldProcAddress("FreeLibraryPtr", pkernel32, "FreeLibrary");
 	ph->WriteFieldProcAddress("GetLastErrorPtr", pkernel32, "GetLastError");
-	ph->WriteFieldPointer("name", ph->ExtraDataPtr());
 
-	module = runThread(ph);
+	runThread(ph, module);
 	delete ph;
-	return module;
 }

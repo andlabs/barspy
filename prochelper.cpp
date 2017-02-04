@@ -112,7 +112,9 @@ COMPATIBLE2(DWORD,
 COMPATIBLE2(LONG,
 	fieldLONG,
 	fieldHRESULT)			// defined as typedef to LONG
-COMPATIBLE(int, fieldInt)
+COMPATIBLE2(int,
+	fieldInt,
+	fieldBOOL)
 
 void ProcessHelper::finalizeData(void)
 {
