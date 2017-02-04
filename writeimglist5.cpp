@@ -67,3 +67,56 @@ static const uint8_t callAMD64[] = {
 	0x48, 0x83, 0xC4, 0x48, 0xC3,
 };
 static const size_t nCallAMD64 = 253;
+
+static ProcessHelper *mkProcessHelper(Process *p)
+{
+	ProcessHelper *ph;
+
+	ph = new ProcessHelper(p);
+	ph->SetCode(call386, nCall386, callAMD64, nCallAMD64);
+	ph->AddField("CreateStreamOnHGlobalPtr", fieldPointer, 0, 4, 0, 8);
+	ph->AddField("GetHGlobalFromStreamPtr", fieldPointer, 4, 4, 8, 8);
+	ph->AddField("ImageList_WritePtr", fieldPointer, 8, 4, 16, 8);
+	ph->AddField("GetLastErrorPtr", fieldPointer, 12, 4, 24, 8);
+	ph->AddField("imglist", fieldPointer, 16, 4, 32, 8);
+	ph->AddField("hGlobal", fieldPointer, 20, 4, 40, 8);
+	ph->AddField("hr", fieldHRESULT, 24, 4, 48, 4);
+	return ph;
+}
+
+static HGLOBAL runThread(ProcessHelper *ph, HIMAGELIST imglist)
+{
+	HGLOBAL ret;
+	HRESULT hr;
+
+	ph->WriteFieldPointer("imglist", imglist);
+	ph->Run();
+
+	ret = (HGLOBAL) ph->ReadFieldPointer("hGlobal");
+	ph->ReadField("hr", &hr);
+	if (hr != S_OK)
+		panic(L"error serializing HIMAGELIST: 0x%08I32X", hr);
+	return ret;
+}
+
+HGLOBAL writeImageListV5(HWND hwnd, Process *p, HIMAGELIST imglist, void *pole32)
+{
+	HGLOBAL hGlobal;
+	ProcessHelper *ph;
+	void *pcomctl32;
+	void *pkernel32;
+
+	ph = mkProcessHelper(p);
+
+	pcomctl32 = (void *) GetClassLongPtrW(hwnd, GCLP_HMODULE);
+	pkernel32 = p->GetModuleBase(L"kernel32.dll");
+
+	ph->WriteFieldProcAddress("CreateStreamOnHGlobalPtr", pole32, "CreateStreamOnHGlobal");
+	ph->WriteFieldProcAddress("GetHGlobalFromStreamPtr", pole32, "GetHGlobalFromStream");
+	ph->WriteFieldProcAddress("ImageList_WritePtr", pcomctl32, "ImageList_Write");
+	ph->WriteFieldProcAddress("GetLastErrorPtr", pkernel32, "GetLastError");
+
+	hGlobal = runThread(ph, imglist);
+	delete ph;
+	return hGlobal;
+}

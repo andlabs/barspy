@@ -20,7 +20,8 @@ CXXFILES = \
 	tab.cpp \
 	toolbargeneral.cpp \
 	toolbartab.cpp \
-	util.cpp
+	util.cpp \
+	writeimglist5.cpp
 
 HFILES = \
 	barspy.hpp \
