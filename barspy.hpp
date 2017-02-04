@@ -163,6 +163,9 @@ public:
 	void *GetProcAddress(void *modbase, const char *procname);
 
 	HANDLE CreateThread(void *threadProc, void *param);
+
+	// convenience so specific tabs can access it
+	bool IsV6;
 };
 extern void initProcess(void);
 extern Process *processFromHWND(HWND hwnd);
@@ -259,12 +262,17 @@ class ToolbarTab : public Tab {
 	Form *generalCol1;
 	Form *generalCol2;
 
+	Chain *buttonCount;
+	HWND buttonList;
+
+	// data about the current toolbar
 	HBRUSH buttonHighlightBrush;
 	HBRUSH buttonShadowBrush;
 	HBRUSH insertionPointBrush;
-
-	Chain *buttonCount;
-	HWND buttonList;
+	HIMAGELIST normalImageList;
+	HIMAGELIST hotImageList;
+	HIMAGELIST pressedImageList;
+	HIMAGELIST disabledImageList;
 public:
 	ToolbarTab(HWND parent, int id);
 	void Reflect(HWND hwnd, Process *p);

@@ -47,7 +47,7 @@ static ProcessHelper *mkProcessHelper(Process *p)
 	return ph;
 }
 
-static WCHAR *runThread(ProcessHelper *ph)
+static WCHAR *runThread(ProcessHelper *ph, Process *p)
 {
 	WCHAR *out;
 	DWORD major, minor;
@@ -58,6 +58,8 @@ static WCHAR *runThread(ProcessHelper *ph)
 	ph->ReadField("major", &major);
 	ph->ReadField("minor", &minor);
 	ph->ReadField("hr", &hr);
+
+	p->IsV6 = major >= 6;
 
 	out = new WCHAR[32];
 	// TODO error checks from StringCchPrintfW()
@@ -82,7 +84,7 @@ WCHAR *getDLLVersion(HWND hwnd, Process *p)
 	pcomctl32 = (void *) GetClassLongPtrW(hwnd, GCLP_HMODULE);
 	ph->WriteFieldProcAddress("DllGetVersionPtr", pcomctl32, "DllGetVersion");
 
-	ret = runThread(ph);
+	ret = runThread(ph, p);
 	delete ph;
 	return ret;
 }
