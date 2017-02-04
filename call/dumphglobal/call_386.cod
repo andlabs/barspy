@@ -79,14 +79,14 @@ $LN11@ThreadProc:
   0007c	e9 ac 00 00 00	 jmp	 $fail$16
   00081	e9 a7 00 00 00	 jmp	 $fail$16
 $LN9@ThreadProc:
-; Line 59
+; Line 60
   00086	8b 45 fc	 mov	 eax, DWORD PTR _a$[ebp]
   00089	8b 48 1c	 mov	 ecx, DWORD PTR [eax+28]
   0008c	89 4d f4	 mov	 DWORD PTR _bdest$[ebp], ecx
-; Line 60
+; Line 61
   0008f	8b 55 ec	 mov	 edx, DWORD PTR _gmem$[ebp]
   00092	89 55 f0	 mov	 DWORD PTR _bsrc$[ebp], edx
-; Line 61
+; Line 62
   00095	c7 45 f8 00 00
 	00 00		 mov	 DWORD PTR _i$[ebp], 0
   0009c	eb 09		 jmp	 SHORT $LN7@ThreadProc
@@ -99,7 +99,7 @@ $LN7@ThreadProc:
   000aa	8b 55 f8	 mov	 edx, DWORD PTR _i$[ebp]
   000ad	3b 51 20	 cmp	 edx, DWORD PTR [ecx+32]
   000b0	73 1e		 jae	 SHORT $LN5@ThreadProc
-; Line 62
+; Line 63
   000b2	8b 45 f4	 mov	 eax, DWORD PTR _bdest$[ebp]
   000b5	8b 4d f0	 mov	 ecx, DWORD PTR _bsrc$[ebp]
   000b8	8a 11		 mov	 dl, BYTE PTR [ecx]
@@ -112,7 +112,7 @@ $LN7@ThreadProc:
   000cb	89 4d f0	 mov	 DWORD PTR _bsrc$[ebp], ecx
   000ce	eb ce		 jmp	 SHORT $LN6@ThreadProc
 $LN5@ThreadProc:
-; Line 64
+; Line 65
   000d0	8b 55 fc	 mov	 edx, DWORD PTR _a$[ebp]
   000d3	8b 42 18	 mov	 eax, DWORD PTR [edx+24]
   000d6	50		 push	 eax
@@ -121,25 +121,25 @@ $LN5@ThreadProc:
   000dd	ff d2		 call	 edx
   000df	85 c0		 test	 eax, eax
   000e1	75 25		 jne	 SHORT $LN4@ThreadProc
-; Line 65
+; Line 66
   000e3	8b 45 fc	 mov	 eax, DWORD PTR _a$[ebp]
   000e6	8b 48 14	 mov	 ecx, DWORD PTR [eax+20]
   000e9	ff d1		 call	 ecx
   000eb	8b 55 fc	 mov	 edx, DWORD PTR _a$[ebp]
   000ee	89 42 28	 mov	 DWORD PTR [edx+40], eax
-; Line 66
+; Line 67
   000f1	8b 45 fc	 mov	 eax, DWORD PTR _a$[ebp]
   000f4	83 78 28 00	 cmp	 DWORD PTR [eax+40], 0
-  000f8	75 0e		 jne	 SHORT $LN4@ThreadProc
-; Line 67
+  000f8	74 0e		 je	 SHORT $LN4@ThreadProc
+; Line 68
   000fa	8b 4d fc	 mov	 ecx, DWORD PTR _a$[ebp]
   000fd	c7 41 24 00 00
 	00 00		 mov	 DWORD PTR [ecx+36], 0
-; Line 68
+; Line 69
   00104	33 c0		 xor	 eax, eax
   00106	eb 3f		 jmp	 SHORT $LN14@ThreadProc
 $LN4@ThreadProc:
-; Line 71
+; Line 72
   00108	8b 55 fc	 mov	 edx, DWORD PTR _a$[ebp]
   0010b	8b 42 18	 mov	 eax, DWORD PTR [edx+24]
   0010e	50		 push	 eax
@@ -148,32 +148,32 @@ $LN4@ThreadProc:
   00115	ff d2		 call	 edx
   00117	85 c0		 test	 eax, eax
   00119	74 04		 je	 SHORT $LN2@ThreadProc
-; Line 72
+; Line 73
   0011b	eb 10		 jmp	 SHORT $fail$16
   0011d	eb 0e		 jmp	 SHORT $fail$16
 $LN2@ThreadProc:
-; Line 74
+; Line 75
   0011f	8b 45 fc	 mov	 eax, DWORD PTR _a$[ebp]
   00122	c7 40 24 01 00
 	00 00		 mov	 DWORD PTR [eax+36], 1
-; Line 75
+; Line 76
   00129	33 c0		 xor	 eax, eax
   0012b	eb 1a		 jmp	 SHORT $LN14@ThreadProc
 $fail$16:
-; Line 78
+; Line 79
   0012d	8b 4d fc	 mov	 ecx, DWORD PTR _a$[ebp]
   00130	8b 51 14	 mov	 edx, DWORD PTR [ecx+20]
   00133	ff d2		 call	 edx
   00135	8b 4d fc	 mov	 ecx, DWORD PTR _a$[ebp]
   00138	89 41 28	 mov	 DWORD PTR [ecx+40], eax
-; Line 79
+; Line 80
   0013b	8b 55 fc	 mov	 edx, DWORD PTR _a$[ebp]
   0013e	c7 42 24 00 00
 	00 00		 mov	 DWORD PTR [edx+36], 0
-; Line 80
+; Line 81
   00145	33 c0		 xor	 eax, eax
 $LN14@ThreadProc:
-; Line 81
+; Line 82
   00147	8b e5		 mov	 esp, ebp
   00149	5d		 pop	 ebp
   0014a	c2 04 00	 ret	 4
