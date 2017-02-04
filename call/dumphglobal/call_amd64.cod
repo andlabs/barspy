@@ -81,14 +81,14 @@ $LN11@ThreadProc:
   0009e	e9 da 00 00 00	 jmp	 $LN8@ThreadProc
   000a3	e9 d5 00 00 00	 jmp	 $fail$17
 $LN9@ThreadProc:
-; Line 59
+; Line 60
   000a8	48 8b 44 24 20	 mov	 rax, QWORD PTR a$[rsp]
   000ad	48 8b 40 38	 mov	 rax, QWORD PTR [rax+56]
   000b1	48 89 44 24 30	 mov	 QWORD PTR bdest$[rsp], rax
-; Line 60
+; Line 61
   000b6	48 8b 44 24 40	 mov	 rax, QWORD PTR gmem$[rsp]
   000bb	48 89 44 24 38	 mov	 QWORD PTR bsrc$[rsp], rax
-; Line 61
+; Line 62
   000c0	48 c7 44 24 28
 	00 00 00 00	 mov	 QWORD PTR i$[rsp], 0
   000c9	eb 0d		 jmp	 SHORT $LN7@ThreadProc
@@ -101,7 +101,7 @@ $LN7@ThreadProc:
   000dd	48 8b 40 40	 mov	 rax, QWORD PTR [rax+64]
   000e1	48 39 44 24 28	 cmp	 QWORD PTR i$[rsp], rax
   000e6	73 2b		 jae	 SHORT $LN5@ThreadProc
-; Line 62
+; Line 63
   000e8	48 8b 44 24 30	 mov	 rax, QWORD PTR bdest$[rsp]
   000ed	48 8b 4c 24 38	 mov	 rcx, QWORD PTR bsrc$[rsp]
   000f2	0f b6 09	 movzx	 ecx, BYTE PTR [rcx]
@@ -114,47 +114,47 @@ $LN7@ThreadProc:
   0010c	48 89 44 24 38	 mov	 QWORD PTR bsrc$[rsp], rax
   00111	eb b8		 jmp	 SHORT $LN6@ThreadProc
 $LN5@ThreadProc:
-; Line 64
+; Line 65
   00113	48 8b 44 24 20	 mov	 rax, QWORD PTR a$[rsp]
   00118	48 8b 48 30	 mov	 rcx, QWORD PTR [rax+48]
   0011c	48 8b 44 24 20	 mov	 rax, QWORD PTR a$[rsp]
   00121	ff 50 10	 call	 QWORD PTR [rax+16]
   00124	85 c0		 test	 eax, eax
   00126	75 2b		 jne	 SHORT $LN4@ThreadProc
-; Line 65
+; Line 66
   00128	48 8b 44 24 20	 mov	 rax, QWORD PTR a$[rsp]
   0012d	ff 50 28	 call	 QWORD PTR [rax+40]
   00130	48 8b 4c 24 20	 mov	 rcx, QWORD PTR a$[rsp]
   00135	89 41 4c	 mov	 DWORD PTR [rcx+76], eax
-; Line 66
+; Line 67
   00138	48 8b 44 24 20	 mov	 rax, QWORD PTR a$[rsp]
   0013d	83 78 4c 00	 cmp	 DWORD PTR [rax+76], 0
-  00141	75 10		 jne	 SHORT $LN3@ThreadProc
-; Line 67
+  00141	74 10		 je	 SHORT $LN3@ThreadProc
+; Line 68
   00143	48 8b 44 24 20	 mov	 rax, QWORD PTR a$[rsp]
   00148	c7 40 48 00 00
 	00 00		 mov	 DWORD PTR [rax+72], 0
-; Line 68
+; Line 69
   0014f	33 c0		 xor	 eax, eax
   00151	eb 48		 jmp	 SHORT $LN14@ThreadProc
 $LN3@ThreadProc:
 $LN4@ThreadProc:
-; Line 71
+; Line 72
   00153	48 8b 44 24 20	 mov	 rax, QWORD PTR a$[rsp]
   00158	48 8b 48 30	 mov	 rcx, QWORD PTR [rax+48]
   0015c	48 8b 44 24 20	 mov	 rax, QWORD PTR a$[rsp]
   00161	ff 50 18	 call	 QWORD PTR [rax+24]
   00164	48 85 c0	 test	 rax, rax
   00167	74 04		 je	 SHORT $LN2@ThreadProc
-; Line 72
+; Line 73
   00169	eb 12		 jmp	 SHORT $LN1@ThreadProc
   0016b	eb 10		 jmp	 SHORT $fail$17
 $LN2@ThreadProc:
-; Line 74
+; Line 75
   0016d	48 8b 44 24 20	 mov	 rax, QWORD PTR a$[rsp]
   00172	c7 40 48 01 00
 	00 00		 mov	 DWORD PTR [rax+72], 1
-; Line 75
+; Line 76
   00179	33 c0		 xor	 eax, eax
   0017b	eb 1e		 jmp	 SHORT $LN14@ThreadProc
 $LN1@ThreadProc:
@@ -162,19 +162,19 @@ $LN8@ThreadProc:
 $LN10@ThreadProc:
 $LN12@ThreadProc:
 $fail$17:
-; Line 78
+; Line 79
   0017d	48 8b 44 24 20	 mov	 rax, QWORD PTR a$[rsp]
   00182	ff 50 28	 call	 QWORD PTR [rax+40]
   00185	48 8b 4c 24 20	 mov	 rcx, QWORD PTR a$[rsp]
   0018a	89 41 4c	 mov	 DWORD PTR [rcx+76], eax
-; Line 79
+; Line 80
   0018d	48 8b 44 24 20	 mov	 rax, QWORD PTR a$[rsp]
   00192	c7 40 48 00 00
 	00 00		 mov	 DWORD PTR [rax+72], 0
-; Line 80
+; Line 81
   00199	33 c0		 xor	 eax, eax
 $LN14@ThreadProc:
-; Line 81
+; Line 82
   0019b	48 83 c4 58	 add	 rsp, 88			; 00000058H
   0019f	c3		 ret	 0
 ?ThreadProc@@YAKPEAX@Z ENDP				; ThreadProc
