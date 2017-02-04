@@ -64,7 +64,7 @@ DWORD WINAPI ThreadProc(LPVOID lpParameter)
 
 	if ((*(a->GlobalUnlockPtr))(a->hGlobal) == 0) {
 		a->lastError = (*(a->GetLastErrorPtr))();
-		if (a->lastError == NO_ERROR) {
+		if (a->lastError != NO_ERROR) {
 			a->success = FALSE;
 			return 0;
 		}
