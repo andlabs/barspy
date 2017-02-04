@@ -170,6 +170,7 @@ void mainwinClass::load(NMTREEVIEWW *nm)
 	which = windowClassOf(hwnd, DESIREDCLASSES, NULL);
 
 	p = processFromHWND(hwnd);
+	// this must be done first, otherwise the comctl32.dll version information won't propagate to the individual views
 	this->common->Reflect(hwnd, p);
 	switch (which) {
 	case DESIREDTOOLBAR:
