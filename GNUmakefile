@@ -10,6 +10,7 @@ CXXFILES = \
 	flags.cpp \
 	getwindowtheme.cpp \
 	layout.cpp \
+	loadlibrary.cpp \
 	main.cpp \
 	mainwin.cpp \
 	panic.cpp \
