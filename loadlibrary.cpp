@@ -37,8 +37,8 @@ static ProcessHelper *mkProcessHelper(Process *p, const WCHAR *name)
 	ph->AddField("module", fieldPointer, 12, 4, 24, 8);
 	ph->AddField("lastError", fieldDWORD, 16, 4, 32, 4);
 	// extra just to be safe
-	ph->SetExtraDataSize((wclsen(name) + 1) * sizeof (WCHAR));
-	ph->SetExtraData(name);
+	ph->SetExtraDataSize((wcslen(name) + 1) * sizeof (WCHAR));
+	ph->WriteExtraData(name);
 	return ph;
 }
 
@@ -47,7 +47,6 @@ static HMODULE runThread(ProcessHelper *ph)
 	HMODULE ret;
 	DWORD lastError;
 
-	ph->WriteField("atom", atom);
 	ph->Run();
 
 	ret = (HMODULE) ph->ReadFieldPointer("module");
@@ -60,8 +59,7 @@ static HMODULE runThread(ProcessHelper *ph)
 
 HMODULE loadLibrary(Process *p, const WCHAR *name)
 {
-	HANDLE hSubAppName, hSubIdList;
-	ATOM atom;
+	HMODULE module;
 	ProcessHelper *ph;
 	void *pkernel32;
 

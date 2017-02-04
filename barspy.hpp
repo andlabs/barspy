@@ -181,11 +181,14 @@ public:
 	void AddField(const std::string &name, int type, size_t off386, size_t size386, size_t offAMD64, size_t sizeAMD64);
 	template<typename T> void ReadField(const std::string &field, T *out);
 	template<typename T> void WriteField(const std::string &field, T val);
+	void *ReadFieldPointer(const std::string &field);
 	void WriteFieldPointer(const std::string &field, void *ptr);
 	void WriteFieldProcAddress(const std::string &field, void *modbase, const char *name);
 	void SetExtraDataSize(size_t n);
 	void *ExtraDataPtr(void);
 	void *ReadExtraData(void);
+	void WriteExtraData(const void *data);
+	void WriteExtraData(const void *data, size_t size);
 	void Run(void);
 };
 // field types

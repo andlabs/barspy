@@ -175,6 +175,26 @@ void ProcessHelper::WriteField(const std::string &field, T val)
 	p->Write(priv->pData, off, &val, size);
 }
 
+void *ProcessHelper::ReadFieldPointer(const std::string &field)
+{
+	Process *p = this->p;
+	struct ProcessHelperPriv *priv = this->priv;
+	struct structField *f;
+	uint32_t p32;
+	uint64_t p64;
+
+	this->finalizeData();
+	f = (*(this->priv->fields))[field];
+	if (f->type != fieldPointer)
+		panic(L"cannot write pointer to field of incompatible type");
+	if (priv->is64Bit) {
+		p->Read(priv->pData, f->offAMD64, &p64, f->sizeAMD64);
+		return (void *) p64;
+	}
+	p->Read(priv->pData, f->off386, &p32, f->size386);
+	return (void *) p32;
+}
+
 void ProcessHelper::WriteFieldPointer(const std::string &field, void *ptr)
 {
 	Process *p = this->p;
@@ -243,6 +263,26 @@ void *ProcessHelper::ReadExtraData(void)
 		off = priv->structSizeAMD64;
 	p->Read(priv->pData, off, d, priv->extraDataSize);
 	return d;
+}
+
+void ProcessHelper::WriteExtraData(const void *data)
+{
+	struct ProcessHelperPriv *priv = this->priv;
+
+	this->WriteExtraData(data, priv->extraDataSize);
+}
+
+void ProcessHelper::WriteExtraData(const void *data, size_t size)
+{
+	Process *p = this->p;
+	struct ProcessHelperPriv *priv = this->priv;
+	size_t off;
+
+	this->finalizeData();
+	off = priv->structSize386;
+	if (priv->is64Bit)
+		off = priv->structSizeAMD64;
+	p->Write(priv->pData, off, data, size);
 }
 
 void ProcessHelper::Run(void)
