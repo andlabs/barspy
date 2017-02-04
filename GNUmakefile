@@ -6,6 +6,7 @@ CXXFILES = \
 	checkmark.cpp \
 	common.cpp \
 	dllgetversion.cpp \
+	dumphglobal.cpp \
 	enum.cpp \
 	flags.cpp \
 	freelibrary.cpp \
