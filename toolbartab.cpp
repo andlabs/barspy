@@ -95,7 +95,7 @@ void ToolbarTab::reset(void)
 
 	if (this->normalImageList != NULL) {
 		// TODO proper error check
-		SendMessageW(this->buttonList, LVM_SETIMAGELIST, LVSIL_NORMAL, (LPARAM) NULL);
+		SendMessageW(this->buttonList, LVM_SETIMAGELIST, LVSIL_SMALL, (LPARAM) NULL);
 		if (ImageList_Destroy(this->normalImageList) == 0)
 			panic(L"error destroying old normal image list: %I32d", GetLastError());
 		this->normalImageList = NULL;
@@ -290,7 +290,7 @@ void ToolbarTab::Reflect(HWND hwnd, Process *p)
 
 	this->normalImageList = readImageList(p, hwnd, TB_GETIMAGELIST);
 	// TODO error check
-	SendMessageW(this->buttonList, LVM_SETIMAGELIST, LVSIL_NORMAL, (LPARAM) (this->normalImageList));
+	SendMessageW(this->buttonList, LVM_SETIMAGELIST, LVSIL_SMALL, (LPARAM) (this->normalImageList));
 	{ int i, n;
 	n = ImageList_GetImageCount(this->normalImageList);
 	for (i = 0; i < n; i++) {
