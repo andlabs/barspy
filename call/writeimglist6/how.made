@@ -1,0 +1,1 @@
+cl /FAc /Facall_amd64.cod call.cpp /GS-
