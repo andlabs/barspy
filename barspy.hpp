@@ -266,6 +266,7 @@ class ToolbarTab : public Tab {
 	HWND buttonList;
 
 	// data about the current toolbar
+	void reset(void);
 	HBRUSH buttonHighlightBrush;
 	HBRUSH buttonShadowBrush;
 	HBRUSH insertionPointBrush;

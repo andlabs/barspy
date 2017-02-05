@@ -51,10 +51,6 @@ ToolbarTab::ToolbarTab(HWND parent, int id) :
 	this->generalCol2->Add(L"DrawText() Flags");
 	// TODO TB_SETBOUNDINGSIZE
 
-	this->buttonHighlightBrush = NULL;
-	this->buttonShadowBrush = NULL;
-	this->insertionPointBrush = NULL;
-
 	this->buttonCount = new Chain(this->buttonsTab);
 	this->buttonCount->SetID(100);
 	this->buttonCount->SetMinEditWidth(50);
@@ -78,6 +74,47 @@ ToolbarTab::ToolbarTab(HWND parent, int id) :
 	lc.cx = 100;
 	if (SendMessageW(this->buttonList, LVM_INSERTCOLUMN, 0, (LPARAM) (&lc)) == (LRESULT) (-1))
 		panic(L"error adding column to button list: %I32d", GetLastError());
+
+	this->buttonHighlightBrush = NULL;
+	this->buttonShadowBrush = NULL;
+	this->insertionPointBrush = NULL;
+	this->normalImageList = NULL;
+	this->hotImageList = NULL;
+	this->pressedImageList = NULL;
+	this->disabledImageList = NULL;
+}
+
+void ToolbarTab::reset(void)
+{
+	deleteObject(this->buttonShadowBrush);
+	this->buttonShadowBrush = NULL;
+	deleteObject(this->buttonHighlightBrush);
+	this->buttonHighlightBrush = NULL;
+	deleteObject(this->insertionPointBrush);
+	this->insertionPointBrush = NULL;
+
+	if (this->normalImageList != NULL) {
+		// TODO proper error check
+		SendMessageW(this->buttonList, LVM_SETIMAGELIST, LVSIL_NORMAL, (LPARAM) NULL);
+		if (ImageList_Destroy(this->normalImageList) == 0)
+			panic(L"error destroying old normal image list: %I32d", GetLastError());
+		this->normalImageList = NULL;
+	}
+	if (this->hotImageList != NULL) {
+		if (ImageList_Destroy(this->hotImageList) == 0)
+			panic(L"error destroying old hot image list: %I32d", GetLastError());
+		this->hotImageList = NULL;
+	}
+	if (this->pressedImageList != NULL) {
+		if (ImageList_Destroy(this->pressedImageList) == 0)
+			panic(L"error destroying old pressed image list: %I32d", GetLastError());
+		this->pressedImageList = NULL;
+	}
+	if (this->disabledImageList != NULL) {
+		if (ImageList_Destroy(this->disabledImageList) == 0)
+			panic(L"error destroying old disabled image list: %I32d", GetLastError());
+		this->disabledImageList = NULL;
+	}
 }
 
 static HIMAGELIST readImageList(Process *p, HWND hwnd, UINT uMsg)
@@ -124,6 +161,8 @@ void ToolbarTab::Reflect(HWND hwnd, Process *p)
 	std::wstring s;
 	LRESULT lResult;
 
+	this->reset();
+
 	ph = getToolbarGeneral(hwnd, p);
 
 	lResult = SendMessageW(hwnd, TB_GETANCHORHIGHLIGHT, 0, 0);
@@ -135,10 +174,6 @@ void ToolbarTab::Reflect(HWND hwnd, Process *p)
 	s = toolbarBitmapFlagsString(hwnd);
 	this->generalCol1->SetText(gen1BitmapFlags, s.c_str());
 
-	deleteObject(this->buttonShadowBrush);
-	this->buttonShadowBrush = NULL;
-	deleteObject(this->buttonHighlightBrush);
-	this->buttonHighlightBrush = NULL;
 	ph->ReadField("gsResultNonzero", &dw);
 	if (dw) {
 		ph->ReadField("highlight", &color);
@@ -168,7 +203,6 @@ void ToolbarTab::Reflect(HWND hwnd, Process *p)
 	color = (COLORREF) SendMessageW(hwnd, TB_GETINSERTMARKCOLOR, 0, 0);
 	s = colorToString(color);
 	this->generalCol1->SetText(gen1InsertionColor, s.c_str());
-	deleteObject(this->insertionPointBrush);
 	this->insertionPointBrush = createSolidBrush(color);
 	this->generalCol1->QueueRedraw(gen1InsertionColor);
 
@@ -254,7 +288,19 @@ void ToolbarTab::Reflect(HWND hwnd, Process *p)
 	if (SendMessageW(this->buttonList, LVM_DELETEALLITEMS, 0, 0) == (LRESULT) FALSE)
 		panic(L"error wiping button list for new toolbar: %I32d", GetLastError());
 
-	readImageList(p, hwnd, TB_GETIMAGELIST);
+	this->normalImageList = readImageList(p, hwnd, TB_GETIMAGELIST);
+	// TODO error check
+	SendMessageW(this->buttonList, LVM_SETIMAGELIST, LVSIL_NORMAL, (LPARAM) (this->normalImageList));
+	{ int i, n;
+	n = ImageList_GetImageCount(this->normalImageList);
+	for (i = 0; i < n; i++) {
+	LVITEMW lvi;
+	ZeroMemory(&lvi, sizeof (LVITEMW));
+	lvi.mask = LVIF_IMAGE | LVIF_TEXT;
+	lvi.iItem = i;
+	lvi.pszText = L"image list entry";
+	lvi.iImage = i;
+	SendMessageW(this->buttonList, LVM_INSERTITEMW, 0, (LPARAM) (&lvi)); } }
 }
 
 HDWP ToolbarTab::RelayoutChild(HDWP dwp, HWND page, RECT *fill, Layouter *d)
