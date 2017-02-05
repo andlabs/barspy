@@ -293,6 +293,9 @@ extern void freeLibraryProcess(Process *p, HMODULE module);
 // writeimglist5.cpp
 extern HGLOBAL writeImageListV5(HWND hwnd, Process *p, HIMAGELIST imglist, void *pole32);
 
+// writeimglist6.cpp
+extern HGLOBAL writeImageListV6(HWND hwnd, Process *p, HIMAGELIST imglist, void *pole32);
+
 // dumphglobal.cpp
 extern uint8_t *dumpHGLOBALStreamData(Process *p, HGLOBAL hGlobal, SIZE_T *size);
 

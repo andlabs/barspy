@@ -95,7 +95,7 @@ static HGLOBAL runThread(ProcessHelper *ph, HIMAGELIST imglist)
 	ret = (HGLOBAL) ph->ReadFieldPointer("hGlobal");
 	ph->ReadField("hr", &hr);
 	if (hr != S_OK)
-		panic(L"error serializing HIMAGELIST: 0x%08I32X", hr);
+		panic(L"error serializing V5 HIMAGELIST: 0x%08I32X", hr);
 	return ret;
 }
 

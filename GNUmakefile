@@ -22,7 +22,8 @@ CXXFILES = \
 	toolbargeneral.cpp \
 	toolbartab.cpp \
 	util.cpp \
-	writeimglist5.cpp
+	writeimglist5.cpp \
+	writeimglist6.cpp
 
 HFILES = \
 	barspy.hpp \
