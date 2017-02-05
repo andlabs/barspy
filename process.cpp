@@ -87,6 +87,8 @@ void Process::MakeExecutable(void *block, size_t size)
 	if (VirtualProtectEx(this->hProc, block, size,
 		PAGE_EXECUTE_READ, &unused) == 0)
 		panic(L"error marking block in process as executable: %I32d", GetLastError());
+	if (FlushInstructionCache(this->hProc, block, size) == 0)
+		panic(L"error flushing instruction cache in process: %I32d", GetLastError());
 }
 
 void Process::Read(void *base, size_t off, void *buf, size_t len)
