@@ -111,7 +111,8 @@ static ProcessHelper *mkProcessHelper(Process *p)
 	ph->SetCode(call386, nCall386, callAMD64, nCallAMD64);
 	ph->AddField("GlobalSizePtr", fieldPointer, 0, 4, 0, 8);
 	ph->AddField("GlobalLockPtr", fieldPointer, 4, 4, 8, 8);
-	ph->AddField("GlobalUnlockPtr", fieldPointer, 8, 2, 16, 8);
+	// TODO check pointer sizes properly
+	ph->AddField("GlobalUnlockPtr", fieldPointer, 8, 4, 16, 8);
 	ph->AddField("GlobalFreePtr", fieldPointer, 12, 4, 24, 8);
 	ph->AddField("VirtualAllocPtr", fieldPointer, 16, 4, 32, 8);
 	ph->AddField("GetLastErrorPtr", fieldPointer, 20, 4, 40, 8);
