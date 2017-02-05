@@ -76,6 +76,7 @@ static HGLOBAL runThread(ProcessHelper *ph, HIMAGELIST imglist)
 
 	ret = (HGLOBAL) ph->ReadFieldPointer("hGlobal");
 	ph->ReadField("hr", &hr);
+	// TODO BreadcrumbBar in Windows Explorer returns E_NOINTERFACE
 	if (hr != S_OK)
 		panic(L"error serializing V6 HIMAGELIST: 0x%08I32X", hr);
 	return ret;
