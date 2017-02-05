@@ -28,6 +28,7 @@
 #include <strsafe.h>
 #include <psapi.h>
 #include <shlwapi.h>
+#include <commoncontrols.h>
 
 #include <stdint.h>
 #include <string.h>

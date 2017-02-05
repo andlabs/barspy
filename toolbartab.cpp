@@ -130,7 +130,10 @@ static HIMAGELIST readImageList(Process *p, HWND hwnd, UINT uMsg)
 	if (imglist == NULL)
 		return NULL;
 	pole32 = loadLibraryProcess(p, L"ole32.dll");
-	hGlobal = writeImageListV5(hwnd, p, imglist, (void *) pole32);
+	if (p->IsV6)
+		hGlobal = writeImageListV6(hwnd, p, imglist, (void *) pole32);
+	else
+		hGlobal = writeImageListV5(hwnd, p, imglist, (void *) pole32);
 	buf = dumpHGLOBALStreamData(p, hGlobal, &size);
 	freeLibraryProcess(p, pole32);
 
@@ -138,9 +141,20 @@ static HIMAGELIST readImageList(Process *p, HWND hwnd, UINT uMsg)
 	stream = SHCreateMemStream(buf, (UINT) size);
 	if (stream == NULL)
 		panic(L"error creating image list read stream: %I32d", GetLastError());
-	imglist = ImageList_Read(stream);
-	if (imglist == NULL)
-		panic(L"error reading V5 image list: %I32d", GetLastError());
+	if (p->IsV6) {
+		IImageList *list;
+		HRESULT hr;
+
+		hr = ImageList_ReadEx(ILP_NORMAL, stream, IID_IImageList, (void **) (&list));
+		if (hr != S_OK)
+			panic(L"error reading V6 image list: %I32d", GetLastError());
+		// https://msdn.microsoft.com/en-us/library/windows/desktop/bb762185(v=vs.85).aspx says we can do this
+		imglist = (HIMAGELIST) list;
+	} else {
+		imglist = ImageList_Read(stream);
+		if (imglist == NULL)
+			panic(L"error reading V5 image list: %I32d", GetLastError());
+	}
 	stream->Release();
 	delete[] buf;
 	return imglist;
