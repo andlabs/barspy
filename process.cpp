@@ -168,6 +168,7 @@ void *Process::GetModuleBase(const WCHAR *modname)
 
 // see also https://www.codeproject.com/tips/139349/getting-the-address-of-a-function-in-a-dll-loaded
 // TODO this is clumsy
+// TODO should we handle forwards? http://stackoverflow.com/questions/42441972/getprocaddress-fails-on-win-7-even-though-the-dll-actually-exports-the-function#comment72038316_42441972
 void *Process::GetProcAddress(void *modbase, const char *procname)
 {
 	size_t nName;
@@ -181,6 +182,7 @@ void *Process::GetProcAddress(void *modbase, const char *procname)
 	DWORD *names;
 	WORD *ords;
 	DWORD i;
+	void *ret;
 
 	nName = strlen(procname);
 	namebuf = new char[nName + 1];
@@ -220,13 +222,14 @@ void *Process::GetProcAddress(void *modbase, const char *procname)
 			break;
 	}
 
+	ret = NULL;
+	if (i != exports.NumberOfNames)
+		ret = (void *) (((uintptr_t) modbase) + funcs[ords[i]]);
 	delete[] ords;
 	delete[] names;
 	delete[] funcs;
 	delete[] namebuf;
-	if (i == exports.NumberOfNames)
-		return NULL;
-	return (void *) (((uintptr_t) modbase) + funcs[ords[i]]);
+	return ret;
 }
 
 HANDLE Process::CreateThread(void *threadProc, void *param)

@@ -188,7 +188,7 @@ void *ProcessHelper::ReadFieldPointer(const std::string &field)
 	this->finalizeData();
 	f = (*(this->priv->fields))[field];
 	if (f->type != fieldPointer)
-		panic(L"cannot write pointer to field of incompatible type");
+		panic(L"cannot read pointer to field of incompatible type");
 	if (priv->is64Bit) {
 		p->Read(priv->pData, f->offAMD64, &p64, f->sizeAMD64);
 		return (void *) p64;
